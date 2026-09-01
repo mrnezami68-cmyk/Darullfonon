@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   Play,
   Search,
+  ShieldCheck,
   Sparkles,
   Sun,
   Target,
@@ -31,6 +32,10 @@ import './styles.css'
 import LearningViews from './LearningViews'
 import StudentViews from './StudentViews'
 import MasterView from './MasterView'
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined))
+}
 
 const themes = {
   light: { label: 'روشن', icon: Sun },
@@ -146,8 +151,37 @@ function StatusPill({ children, tone = 'neutral' }) {
   return <span className={`status-pill status-${tone}`}><span className="status-dot" />{children}</span>
 }
 
+function DemoRoleGate({ onSelect }) {
+  return (
+    <div className="role-gate-shell">
+      <div className="role-gate-ornament" aria-hidden="true"><span>✦</span></div>
+      <div className="role-gate-card">
+        <Brand />
+        <span className="section-kicker">نسخه نمایشی MVP</span>
+        <h1>چطور وارد دارالفنون می‌شوی؟</h1>
+        <p>برای مشاهده تجربه فعلی، نقش موردنظر را انتخاب کن. این انتخاب فقط برای تست است و احراز هویت واقعی نیست.</p>
+        <div className="role-options">
+          <button type="button" className="role-option role-student" onClick={() => onSelect('student')}>
+            <span className="role-option-icon"><GraduationCap size={22} /></span>
+            <span><strong>ورود به مسیر Student</strong><small>یادگیری، مطالعه، آزمون و پیشرفت</small></span>
+            <ArrowLeft size={17} />
+          </button>
+          <button type="button" className="role-option role-master" onClick={() => onSelect('master')}>
+            <span className="role-option-icon"><ShieldCheck size={22} /></span>
+            <span><strong>ورود به پنل Master</strong><small>مدیریت محتوا و مسیرهای آموزشی</small></span>
+            <ArrowLeft size={17} />
+          </button>
+        </div>
+        <span className="role-gate-note"><Sparkles size={14} /> نقش‌ها در این نسخه آزمایشی قابل تغییر هستند.</span>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('darullfonon-theme') || 'light')
+  const [demoRole, setDemoRole] = useState(() => localStorage.getItem('darullfonon-demo-role') || '')
+  const [showRoleGate, setShowRoleGate] = useState(() => !localStorage.getItem('darullfonon-demo-role'))
   const [active, setActive] = useState('home')
   const [learningView, setLearningView] = useState('overview')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -181,7 +215,23 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  if (active === 'master') return <MasterView onExit={() => navigate('home')} />
+  function selectDemoRole(nextRole) {
+    localStorage.setItem('darullfonon-demo-role', nextRole)
+    setDemoRole(nextRole)
+    setShowRoleGate(false)
+    setActive(nextRole === 'master' ? 'master' : 'home')
+    setLearningView('overview')
+  }
+
+  function changeDemoRole() {
+    localStorage.removeItem('darullfonon-demo-role')
+    setDemoRole('')
+    setShowRoleGate(true)
+    setMenuOpen(false)
+  }
+
+  if (showRoleGate) return <DemoRoleGate onSelect={selectDemoRole} />
+  if (active === 'master') return <MasterView onExit={() => selectDemoRole('student')} />
 
   return (
     <div className={`app-shell theme-${theme}`}>

@@ -1,0 +1,19 @@
+{
+  "name": "دارالفنون",
+  "short_name": "دارالفنون",
+  "description": "مدرسه دانش مدرن اقتصاد و بازارهای مالی",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f3ea",
+  "theme_color": "#163b6d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

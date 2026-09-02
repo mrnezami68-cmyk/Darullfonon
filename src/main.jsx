@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   CircleHelp,
   Clock3,
-  Compass,
   FlaskConical,
   GraduationCap,
   Home,
@@ -34,7 +33,8 @@ import LearningViews from './LearningViews'
 import StudentViews from './StudentViews'
 import AdminView from './AdminView'
 import MasterView from './MasterView'
-import { applyTeacher, getAuthMe, logout, onboardStudent, setAuthTokenGetter } from './api'
+import { applyTeacher, getAuthMe, getCourses, getProgress, logout, onboardStudent, setAuthTokenGetter } from './api'
+import { ApiState, useApiResource } from './useApiResource.jsx'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined))
@@ -52,12 +52,6 @@ const navItems = [
   { id: 'knowledge', label: 'دانشنامه', icon: BookMarked },
   { id: 'lab', label: 'آزمایشگاه', icon: FlaskConical },
   { id: 'profile', label: 'پروفایل', icon: UserRound },
-]
-
-const faculties = [
-  { title: 'اقتصاد کلان', caption: 'از تصویر بزرگ اقتصاد شروع کن', icon: '↗', tone: 'ink' },
-  { title: 'بازارهای مالی', caption: 'بورس، فارکس و کریپتو', icon: '◌', tone: 'teal' },
-  { title: 'تحلیل و رفتار', caption: 'تصمیم‌های دقیق‌تر، ذهن آرام‌تر', icon: '✦', tone: 'gold' },
 ]
 
 const resources = [
@@ -132,20 +126,15 @@ function ThemeMenu({ theme, onChange }) {
 function ProgressRing({ value, size = 82 }) {
   const radius = 32
   const circumference = 2 * Math.PI * radius
-  const offset = circumference - (value / 100) * circumference
+  const available = typeof value === 'number'
+  const offset = available ? circumference - (value / 100) * circumference : circumference
   return (
     <div className="progress-ring" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 80 80" aria-label={`${value} درصد پیشرفت`} role="img">
+      <svg viewBox="0 0 80 80" aria-label={available ? `${value} درصد پیشرفت` : 'پیشرفت در دسترس نیست'} role="img">
         <circle className="ring-track" cx="40" cy="40" r={radius} />
-        <circle
-          className="ring-value"
-          cx="40"
-          cy="40"
-          r={radius}
-          style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
-        />
+        {available && <circle className="ring-value" cx="40" cy="40" r={radius} style={{ strokeDasharray: circumference, strokeDashoffset: offset }} />}
       </svg>
-      <span>{value}<small>٪</small></span>
+      <span>{available ? value : '—'}{available && <small>٪</small>}</span>
     </div>
   )
 }
@@ -255,6 +244,14 @@ function App({ appUser, onSignOut }) {
   const [toast, setToast] = useState('')
   const displayName = [appUser?.firstName, appUser?.lastName].filter(Boolean).join(' ') || appUser?.email || 'Student'
   const displayInitial = displayName.slice(0, 1).toUpperCase()
+  const { data: dashboardProgress, loading: progressLoading, error: progressError } = useApiResource(getProgress, [])
+  const { data: dashboardCourses, loading: coursesLoading, error: coursesError } = useApiResource(getCourses, [])
+  const completedProgress = dashboardProgress?.filter((item) => ['Studied', 'Passed'].includes(item.status)) || []
+  const totalLessonCount = dashboardCourses?.reduce((total, course) => total + Number(course.lesson_count || 0), 0) || 0
+  const dashboardProgressValue = dashboardProgress && totalLessonCount > 0 ? Math.min(100, Math.round((completedProgress.length / totalLessonCount) * 100)) : null
+  const latestProgress = dashboardProgress?.[0]
+  const dashboardReady = !progressLoading && !coursesLoading
+  const dashboardError = progressError || coursesError
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -366,25 +363,22 @@ function App({ appUser, onSignOut }) {
                 <div><span className="section-kicker">ادامه مسیر تو</span><h2>جایی که متوقف شدی</h2></div>
                 <button className="quiet-link" type="button" onClick={() => navigate('learning')}>همه دوره‌ها <ArrowLeft size={15} /></button>
               </div>
-              <article className="continue-card">
-                <div className="continue-icon"><span>₿</span></div>
-                <div className="continue-info"><StatusPill tone="active">در حال یادگیری</StatusPill><h3>مبانی کریپتو</h3><p>فصل ۶ · درس ۳ — کیف پول و امنیت دارایی</p><div className="progress-bar"><span style={{ width: '48%' }} /></div><div className="progress-meta"><span>۴۸٪ تکمیل شده</span><span>حدود ۱۲ دقیقه باقی مانده</span></div></div>
-                <div className="continue-cta"><ProgressRing value={48} size={86} /><button className="primary-button small-button" type="button" onClick={() => openLearningView('lesson')}>ادامه <ArrowLeft size={16} /></button></div>
-              </article>
+              <ApiState loading={!dashboardReady} error={dashboardError} onRetry={() => { window.location.reload() }}>
+                <article className="continue-card">
+                  <div className="continue-icon"><BookOpen size={22} /></div>
+                  <div className="continue-info"><StatusPill tone={latestProgress ? 'active' : 'neutral'}>{latestProgress ? 'آخرین وضعیت ثبت‌شده' : 'هنوز شروع نشده'}</StatusPill><h3>{latestProgress?.title || 'شروع مسیر یادگیری'}</h3><p>{latestProgress ? `وضعیت درس: ${latestProgress.status}` : 'یک دوره منتشرشده را برای شروع انتخاب کن.'}</p><div className="progress-meta"><span>{dashboardProgressValue === null ? (completedProgress.length ? `${completedProgress.length} درس ثبت‌شده` : 'پیشرفتی ثبت نشده') : `${dashboardProgressValue}٪ پیشرفت کلی`}</span><span>آخرین وضعیت از سرور</span></div></div>
+                  <div className="continue-cta"><ProgressRing value={dashboardProgressValue} size={86} /><button className="primary-button small-button" type="button" onClick={() => openLearningView('course')}>{latestProgress ? 'مشاهده مسیر' : 'شروع'} <ArrowLeft size={16} /></button></div>
+                </article>
+              </ApiState>
             </section>
 
             <section className="learning-paths page-container">
-              <div className="section-heading"><div><span className="section-kicker">مسیرهای پیشنهادی</span><h2>از کجا شروع کنیم؟</h2></div><button className="circle-arrow" type="button" aria-label="مشاهده مسیرها" onClick={() => navigate('learning')}><ArrowLeft size={18} /></button></div>
-              <div className="faculty-grid">
-                {faculties.map((faculty, index) => <button className={`faculty-card tone-${faculty.tone}`} key={faculty.title} type="button" onClick={() => navigate('learning')}><div className="faculty-top"><span className="faculty-index">۰{index + 1}</span><span className="faculty-icon">{faculty.icon}</span></div><div><h3>{faculty.title}</h3><p>{faculty.caption}</p></div><span className="faculty-link">مشاهده مسیر <ArrowLeft size={15} /></span></button>)}
-              </div>
-            </section>
-
-            <section className="focus-section page-container">
-              <div className="focus-card">
-                <div className="focus-content"><div className="eyebrow"><span className="eyebrow-line" />این هفته در دارالفنون</div><h2>سرمایه‌گذاری خوب،<br /><em>از شناخت خودت</em> شروع می‌شود.</h2><p>قبل از اینکه بازار را تحلیل کنی، سبک تصمیم‌گیری خودت را بشناس. یک خودارزیابی کوتاه، نقطه شروعی برای ساختن مسیر شخصی توست.</p><button className="outline-button" type="button" onClick={() => navigate('lab')}>شروع خودارزیابی <ArrowLeft size={17} /></button></div>
-                <div className="focus-visual"><div className="focus-compass"><Compass size={74} strokeWidth={1} /><span>شناخت</span></div><div className="focus-orbit focus-orbit-a" /><div className="focus-orbit focus-orbit-b" /><span className="focus-visual-note">۱۲ دقیقه برای<br /><strong>شناخت بهتر</strong></span></div>
-              </div>
+              <div className="section-heading"><div><span className="section-kicker">مسیرهای منتشرشده</span><h2>از کجا شروع کنیم؟</h2></div><button className="circle-arrow" type="button" aria-label="مشاهده مسیرها" onClick={() => navigate('learning')}><ArrowLeft size={18} /></button></div>
+              <ApiState loading={!dashboardReady} error={dashboardError} onRetry={() => window.location.reload()}>
+                <div className="faculty-grid">
+                  {dashboardCourses?.length ? dashboardCourses.map((course, index) => <button className="faculty-card tone-teal" key={course.id} type="button" onClick={() => navigate('learning')}><div className="faculty-top"><span className="faculty-index">۰{index + 1}</span><span className="faculty-icon">◌</span></div><div><h3>{course.title}</h3><p>{course.summary}</p></div><span className="faculty-link">مشاهده مسیر <ArrowLeft size={15} /></span></button>) : <div className="empty-card"><BookOpen size={23} /><h3>دوره‌ای منتشر نشده است</h3><p>مسیر یادگیری پس از انتشار دوره در اینجا نمایش داده می‌شود.</p></div>}
+                </div>
+              </ApiState>
             </section>
 
             <section className="resources-section page-container">
@@ -393,7 +387,7 @@ function App({ appUser, onSignOut }) {
             </section>
 
             <section className="achievement-section page-container">
-              <div className="achievement-card"><div className="achievement-medal"><Trophy size={27} strokeWidth={1.5} /><span>۵</span></div><div><span className="section-kicker">ویترین پیشرفت</span><h2>هر قدم تو، بخشی از داستان توست.</h2><p>پیشرفت‌هایت را ببین، مسیر بعدی را پیدا کن و با آرامش ادامه بده.</p></div><button className="outline-button" type="button" onClick={() => navigate('profile')}>مشاهده دستاوردها <ArrowLeft size={17} /></button></div>
+              <div className="achievement-card"><div className="achievement-medal"><Trophy size={27} strokeWidth={1.5} /></div><div><span className="section-kicker">ویترین پیشرفت</span><h2>هر قدم تو، بخشی از داستان توست.</h2><p>پیشرفت‌هایت را ببین، مسیر بعدی را پیدا کن و با آرامش ادامه بده.</p></div><button className="outline-button" type="button" onClick={() => navigate('profile')}>مشاهده دستاوردها <ArrowLeft size={17} /></button></div>
             </section>
           </>
         ) : active === 'learning' ? (

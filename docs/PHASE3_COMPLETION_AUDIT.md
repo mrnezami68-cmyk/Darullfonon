@@ -2,7 +2,7 @@
 
 **تاریخ ممیزی:** ۲ سپتامبر ۲۰۲۶
 **Branch:** `arena/01a05d5b-darullfonon`
-**Commit مبنا:** `c1a07d2`
+**Commit مبنای Implementation:** `c1a07d2`؛ اصلاحات ممیزی در Commit بعدی همین Branch ثبت می‌شوند
 **Complexity Target:** `L1 — Simple`
 **دامنه:** Authentication، Authorization، PWA Offline، معماری، انسجام، کیفیت کد، امنیت، تست و آمادگی Release
 **نتیجه نهایی:** `PHASE 3 IMPLEMENTED LOCALLY — PRODUCTION RELEASE BLOCKED`
@@ -41,7 +41,7 @@ Cloudflare D1
 - Local Worker HTTP smoke روی پورت موقت
 - بررسی CORS، Health، Public API و Protected API
 - بررسی الگوهای ممنوع امنیتی و Secretها
-- npm build، Worker typecheck و npm audit
+- npm build، Worker typecheck، npm audit و Production preflight
 - بررسی parser فایل Service Worker
 - بررسی وابستگی Browser automation و وضعیت Wrangler/Cloudflare
 ```
@@ -52,6 +52,7 @@ Cloudflare D1
 - `gh auth status` موفق بود، اما دسترسی به GitHub Actions Secrets با HTTP 403 از نوع Integration محدود شد؛ هیچ Secretی خوانده یا افشا نشد.
 - `wrangler whoami` و عملیات Cloudflare به دلیل نبود Authentication/`CLOUDFLARE_API_TOKEN` اجرا نشدند.
 - `chromium`، Playwright و Cypress در محیط موجود نبودند.
+- `npm run phase3:preflight -- --production` عمداً با فهرست کمبودهای Environment شکست خورد؛ هیچ Secretی چاپ نشد.
 
 ---
 
@@ -129,7 +130,9 @@ Teacher application rate limit: 429 PASS
 3. محدود کردن Chapter، Lesson و Quiz عمومی به Course منتشرشده؛ Draft/Unpublished ancestor از مسیرهای Public و Cache نشت نمی‌کند.
 4. جلوگیری از ثبت Audit کاذب در بررسی Teacher یا Suspend کردن User نامعتبر/قبلاً Suspend شده؛ ابتدا Transition موفق می‌شود و سپس Audit ثبت می‌گردد.
 5. الزام `nbf` و `azp` معتبر در JWT؛ Token ناقص یا بدون Authorized Party مجاز رد می‌شود.
-6. اصلاح اسناد متناقض تاریخی و ثبت این Completion Audit؛ Snapshotهای Phase 0/1 دست‌نخورده به‌عنوان تاریخچه باقی مانده‌اند.
+6. Cache کردن کلید عمومی واردشده در طول عمر isolate با تشخیص خودکار تغییر PEM؛ هزینه Import در هر درخواست کاهش می‌یابد و Rotation با مقدار جدید کار می‌کند.
+7. همگام‌سازی محدود Email/Name و `email_verified` از Claim معتبر به D1، بدون تغییر Role/Status؛ Profile بعد از تغییرات معتبر Provider عقب نمی‌ماند.
+8. اصلاح اسناد متناقض تاریخی و ثبت این Completion Audit؛ Snapshotهای Phase 0/1 دست‌نخورده به‌عنوان تاریخچه باقی مانده‌اند.
 
 هیچ Password، Identity System دوم، Database جدید، Queue، Framework سنگین یا Migration مخرب اضافه نشده است.
 
@@ -269,7 +272,18 @@ Teacher application rate limit: 429 PASS
 
 ---
 
-## 9. Gate ورود به Phase 4
+## 9. بهبودهای اجرایی فرآیند
+
+برای کاهش تکرار خطا و جلوگیری از اعلام زودهنگام `PASS`، این بهبود اجرایی اضافه شد:
+
+- `npm run phase3:preflight -- --production` وجود و شکل کلی کلیدها، Originها، Template، Bootstrap Subject، Environment و Database ID را بدون چاپ Secret بررسی می‌کند.
+- Preflight در وضعیت فعلی عمداً `BLOCKED` می‌شود و کمبودهای دقیق را اعلام می‌کند؛ این شکست، خطای مورد انتظار Release Gate است نه شکست Build.
+- هر Release باید Artifact چهارلایه داشته باشد: `preflight`، `build/typecheck`، `local/remote smoke` و Browser evidence.
+- هیچ تستی که روی Fixture محلی اجرا شده، به‌عنوان تست Clerk/Production گزارش نشود.
+- Migration Remote فقط بعد از ثبت Purpose، Impact، Risk، Validation، Rollback، Backup و Owner انجام شود.
+- ترتیب اصلاحات باید از P0 به P1 و سپس P2 باشد؛ بهبود Product یا Refactor غیرضروری نباید Gate امنیتی را مخلوط کند.
+
+## 10. Gate ورود به Phase 4
 
 ورود به Phase 4 فقط با این وضعیت مجاز است:
 
@@ -295,7 +309,7 @@ Reason: environment-dependent gates are NOT VERIFIED
 
 ---
 
-## 10. Verdict نهایی
+## 11. Verdict نهایی
 
 ```text
 Architecture: PASS WITH OPERATIONAL WARNINGS

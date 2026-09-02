@@ -9,6 +9,7 @@
 - Added minimal PWA offline reading cache for published public content only.
 - Added Phase 3 completion audit with operational gates, strengths/weaknesses, role review and sequential remediation plan.
 - Hardened Bearer CORS usage, published-content ancestry checks, Progress validation and transition audit integrity.
+- Added a secret-safe `phase3:preflight -- --production` release-gate command.
 
 ## Unreleased — 2026-09-02
 

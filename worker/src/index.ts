@@ -92,13 +92,21 @@ const contentTables: Record<ContentType, { table: string; fields: string; values
 
 const JSON_LIMIT = 64 * 1024
 const AUTH_TOKEN_LIMIT = 16 * 1024
+let clerkVerificationKeyCache: { pem: string; key: CryptoKey } | null = null
 const identifierTransliteration: Record<string, string> = {
   آ: 'a', ا: 'a', ب: 'b', پ: 'p', ت: 't', ث: 's', ج: 'j', چ: 'ch', ح: 'h', خ: 'kh', د: 'd', ذ: 'z', ر: 'r', ز: 'z', ژ: 'zh', س: 's', ش: 'sh', ص: 's', ض: 'z', ط: 't', ظ: 'z', ع: 'a', غ: 'gh', ف: 'f', ق: 'gh', ک: 'k', گ: 'g', ل: 'l', م: 'm', ن: 'n', و: 'v', ه: 'h', ی: 'y', ي: 'y', ئ: 'y', ء: '', ة: 'h', ٱ: 'a',
 }
 
 function allowedOrigin(request: Request, env: Env): string {
   const origin = request.headers.get('Origin')
-  const configured = (env.ALLOWED_ORIGIN || '').split(',').map((value) => value.trim()).filter(Boolean)
+  const configured = (env.ALLOWED_ORIGIN || '').split(',').map((value) => value.trim()).filter((value) => {
+    try {
+      const parsed = new URL(value)
+      return (parsed.protocol === 'https:' || parsed.protocol === 'http:') && parsed.origin === value
+    } catch {
+      return false
+    }
+  })
   if (!configured.length) return 'null'
   if (origin && configured.includes(origin)) return origin
   return 'null'
@@ -125,7 +133,7 @@ function json(request: Request, env: Env, data: unknown, status = 200): Response
 }
 
 function empty(request: Request, env: Env, status = 204): Response {
-  return new Response(null, { status, headers: corsHeaders(request, env) })
+  return new Response(null, { status, headers: { ...corsHeaders(request, env), 'Cache-Control': 'no-store' } })
 }
 
 function error(request: Request, env: Env, message: string, status: number, code: string): Response {
@@ -198,6 +206,19 @@ function pemToArrayBuffer(pem: string): ArrayBuffer {
   return base64UrlBytes(base64.replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')).buffer as ArrayBuffer
 }
 
+async function clerkVerificationKey(pem: string): Promise<CryptoKey> {
+  if (clerkVerificationKeyCache?.pem === pem) return clerkVerificationKeyCache.key
+  const key = await crypto.subtle.importKey(
+    'spki',
+    pemToArrayBuffer(pem),
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  )
+  clerkVerificationKeyCache = { pem, key }
+  return key
+}
+
 function claimString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
@@ -219,13 +240,7 @@ async function verifyClerkToken(request: Request, env: Env): Promise<AuthIdentit
     const header = decodeJwtPart<{ alg?: string }>(parts[0])
     const claims = decodeJwtPart<ClerkClaims>(parts[1])
     if (header.alg !== 'RS256') throw new Error('unsupported algorithm')
-    const key = await crypto.subtle.importKey(
-      'spki',
-      pemToArrayBuffer(env.CLERK_JWT_KEY),
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-      false,
-      ['verify'],
-    )
+    const key = await clerkVerificationKey(env.CLERK_JWT_KEY)
     const signatureValid = await crypto.subtle.verify(
       'RSASSA-PKCS1-v1_5',
       key,
@@ -274,6 +289,7 @@ async function getAuthContext(request: Request, env: Env): Promise<AuthContext |
   if (!user) return error(request, env, 'ثبت‌نام این حساب هنوز تکمیل نشده است.', 403, 'ONBOARDING_REQUIRED')
   if (user.status === 'suspended') return error(request, env, 'این حساب موقتاً غیرفعال است.', 403, 'ACCOUNT_SUSPENDED')
   if (!identity.emailVerified) return error(request, env, 'حساب باید ایمیل تأییدشده داشته باشد.', 403, 'EMAIL_VERIFICATION_REQUIRED')
+  user = await syncUserIdentity(env, user, identity)
   return { identity, user }
 }
 
@@ -410,6 +426,15 @@ async function findUserBySubject(env: Env, subject: string): Promise<AppUser | n
   ).bind(subject).first<AppUser>()
 }
 
+async function syncUserIdentity(env: Env, user: AppUser, identity: AuthIdentity): Promise<AppUser> {
+  const emailVerified = identity.emailVerified ? 1 : 0
+  if (user.email === identity.email && user.email_verified === emailVerified && user.first_name === identity.firstName && user.last_name === identity.lastName) return user
+  await env.DB.prepare(
+    `UPDATE users SET email = ?, email_verified = ?, first_name = ?, last_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+  ).bind(identity.email, emailVerified, identity.firstName, identity.lastName, user.id).run()
+  return (await findUserBySubject(env, identity.subject)) || user
+}
+
 async function tokenIsRevoked(env: Env, jti: string): Promise<boolean> {
   const revoked = await env.DB.prepare('SELECT jti FROM auth_revoked_tokens WHERE jti = ? AND expires_at > ? LIMIT 1').bind(jti, Math.floor(Date.now() / 1000)).first()
   return Boolean(revoked)
@@ -434,6 +459,7 @@ async function authMe(request: Request, env: Env): Promise<Response> {
     await env.DB.prepare(`INSERT INTO audit_logs (id, actor_user_id, action, target_type, target_id, metadata_json) VALUES (?, ?, 'admin.bootstrap', 'user', ?, '{}')`).bind(crypto.randomUUID(), user.id, user.id).run()
   }
   if (user && !identity.emailVerified) return error(request, env, 'حساب باید ایمیل تأییدشده داشته باشد.', 403, 'EMAIL_VERIFICATION_REQUIRED')
+  if (user) user = await syncUserIdentity(env, user, identity)
   return json(request, env, {
     data: {
       authenticated: true,
@@ -573,7 +599,7 @@ async function suspendUser(request: Request, env: Env, id: string): Promise<Resp
   if (auth.user.id === id) return error(request, env, 'Admin نمی‌تواند حساب خودش را Suspend کند.', 400, 'SELF_SUSPENSION_NOT_ALLOWED')
   const result = await env.DB.batch([
     env.DB.prepare(`UPDATE users SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status != 'suspended'`).bind(id),
-    env.DB.prepare(`UPDATE teacher_applications SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'active'`).bind(id),
+    env.DB.prepare(`UPDATE teacher_applications SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status IN ('active', 'pending', 'rejected')`).bind(id),
   ])
   if (Number(result[0]?.meta?.changes || 0) !== 1) return error(request, env, 'کاربر موردنظر پیدا نشد یا قبلاً Suspend است.', 404, 'USER_NOT_FOUND')
   await env.DB.prepare(`INSERT INTO audit_logs (id, actor_user_id, action, target_type, target_id, metadata_json) VALUES (?, ?, 'user.suspend', 'user', ?, '{}')`).bind(crypto.randomUUID(), auth.user.id, id).run()

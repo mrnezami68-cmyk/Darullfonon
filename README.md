@@ -46,6 +46,13 @@ Authorization: Bearer <short-lived Clerk session token>
 ```bash
 npm run build
 npm run worker:typecheck
+npm run phase3:preflight
+```
+
+برای Gate انتشار Production، Preflight مقادیر را چاپ نمی‌کند و در نبود تنظیمات واقعی عمداً شکست می‌خورد:
+
+```bash
+npm run phase3:preflight -- --production
 ```
 
 ## اسناد
@@ -65,6 +72,7 @@ npm run worker:typecheck
 - `docs/PHASE3_AUTH_PROVIDER_MATRIX.md` — مقایسه Clerk و Supabase برای OAuth، Worker و PWA
 - `docs/PHASE3_CLERK_SETUP.md` — تنظیمات Clerk، Secretها، Bootstrap و Flowهای Phase 3
 - `docs/PHASE3_AUTH_TEST_REPORT.md` — تست‌های واقعی Local، موارد NOT VERIFIED و Release Blockers
+- `docs/PHASE3_COMPLETION_AUDIT.md` — ممیزی زنجیره، انتخاب راهکار، اولویت ریسک‌ها و Gate ورود به Phase 4
 
 ## Authentication Configuration
 

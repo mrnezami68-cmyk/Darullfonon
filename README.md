@@ -5,7 +5,8 @@
 ## وضعیت
 
 - Complexity: L1 — Simple
-- Phase: Vertical Slice + Phase 1 Architecture
+- Phase: Phase 2 — API Integration (Approved with warnings for Local Development)
+- Next stage: Phase 3 — Production Security / Authentication (not started)
 - Frontend: React + Vite
 - API: Cloudflare Worker
 - Database: Cloudflare D1
@@ -55,6 +56,7 @@ npm run worker:typecheck
 - `docs/SECURITY_NOTES.md` — کنترل‌ها و شروط Production
 - `docs/FINAL_AUDIT.md` — صورت‌جلسه ممیزی Vertical Slice
 - `docs/darullfonon-mvp-execution-prompt-v1.0.md` — پرامپت اجرایی MVP
+- `docs/PHASE_ROADMAP_AND_EXECUTION_REVIEW.md` — وضعیت فازها، نقشه راه و چارچوب جلسه تصمیم‌گیری
 
 ## هشدار Production
 

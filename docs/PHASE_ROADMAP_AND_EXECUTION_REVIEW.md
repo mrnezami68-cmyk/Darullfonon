@@ -73,9 +73,10 @@ Production Release
 ### آخرین وضعیت Git
 
 ```text
-HEAD: c1a07d2 feat: implement Clerk authentication and authorization phase 3
+HEAD: cf1cd16 audit: verify JWT issuance and harden preflight
+Release Baseline: 3f29338 audit: harden phase 3 gates and release preflight
 Branch: arena/01a05d5b-darullfonon
-Working tree: clean
+Working tree: clean after audit verification
 ```
 
 ---

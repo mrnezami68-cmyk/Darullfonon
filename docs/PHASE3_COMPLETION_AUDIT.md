@@ -2,7 +2,9 @@
 
 **تاریخ ممیزی:** ۲ سپتامبر ۲۰۲۶
 **Branch:** `arena/01a05d5b-darullfonon`
-**Commit مبنای Implementation:** `c1a07d2`؛ اصلاحات ممیزی در Commit بعدی همین Branch ثبت می‌شوند
+**نسخه سند فعال:** `1.1`
+**Release Baseline:** `3f29338` (`audit: harden phase 3 gates and release preflight`)
+**آخرین اصلاحات Verification:** `cf1cd16` (`audit: verify JWT issuance and harden preflight`)
 **Complexity Target:** `L1 — Simple`
 **دامنه:** Authentication، Authorization، PWA Offline، معماری، انسجام، کیفیت کد، امنیت، تست و آمادگی Release
 **نتیجه نهایی:** `PHASE 3 IMPLEMENTED LOCALLY — PRODUCTION RELEASE BLOCKED`

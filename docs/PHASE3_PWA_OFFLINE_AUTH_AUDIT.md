@@ -1,7 +1,7 @@
 # PWA و Offline Access — Initial Audit
 
 **تاریخ:** ۲ سپتامبر ۲۰۲۶  
-**وضعیت:** AUDIT COMPLETE — OFFLINE READING SCOPE CONFIRMED FOR PLAN  
+**وضعیت:** AUDIT COMPLETE — OFFLINE READING IMPLEMENTED; Browser E2E NOT VERIFIED
 **Complexity Target:** `L1 — Simple`
 
 این سند در پاسخ به نیاز بررسی قابلیت‌های فعلی PWA و امکان استفاده آفلاین ثبت شده است. بررسی فقط Inspect و Plan است؛ Service Worker، API یا Authentication تغییر نکرده‌اند.
@@ -36,14 +36,14 @@
 
 ```text
 PWA Installability: PRESENT
-Offline App Shell: NOT GUARANTEED
-Offline Course Content: NOT IMPLEMENTED
-Offline Progress Sync: NOT IMPLEMENTED
-Offline Quiz Submission: NOT IMPLEMENTED
-Offline Authentication: NOT IMPLEMENTED
+Offline App Shell: IMPLEMENTED IN SERVICE WORKER
+Offline Course Content: IMPLEMENTED FOR ALLOW-LISTED PUBLISHED GETs
+Offline Progress Sync: NOT ALLOWED IN MVP
+Offline Quiz Submission: NOT ALLOWED IN MVP
+Offline Authentication: NOT ALLOWED
 ```
 
-بنابراین در وضعیت فعلی، نصب PWA به‌تنهایی به معنی قابل‌استفاده‌بودن آفلاین نیست.
+در نسخه فعلی، Service Worker برای Shell و محتوای عمومی allow-list شده Cache دارد؛ اجرای Browser E2E و مشاهده Offline روی Device واقعی هنوز باید Verify شود.
 
 ---
 
@@ -92,7 +92,7 @@ Offline:
 
 ---
 
-## 4. طرح فنی حداقلی، در صورت اجرای Offline Reading
+## 4. طرح فنی حداقلی اجراشده برای Offline Reading
 
 ### Service Worker
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase 3 Authentication
+
+- Selected Clerk as the Identity Provider for Student OAuth/OIDC and invited Staff.
+- Added D1-backed User, Teacher Application, audit, token revocation, and rate-limit models.
+- Replaced Demo Role/User headers with verified Clerk JWT and Backend role/status authorization.
+- Added Student onboarding, Teacher pending/approval/rejection, Admin review, Master provisioning, and secure logout.
+- Added minimal PWA offline reading cache for published public content only.
+
+
 ## Unreleased — 2026-09-02
 
 ### Added

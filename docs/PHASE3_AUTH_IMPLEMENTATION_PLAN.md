@@ -1,11 +1,11 @@
 # Phase 3 Authentication — Minimal Implementation Plan
 
-**وضعیت:** PLAN DRAFT — وابسته به Provider و Policyهای باز  
-**Complexity Target:** `L1 — Simple`  
-**اصل:** MAKE THE SMALLEST SAFE CHANGE  
+**وضعیت:** IMPLEMENTED — Clerk selected; production configuration/verification remains
+**Complexity Target:** `L1 — Simple`
+**اصل:** MAKE THE SMALLEST SAFE CHANGE
 **مرجع:** `docs/PHASE3_INITIAL_AUTH_AUDIT.md` و `docs/PHASE3_AUTH_DECISION_RECORD.md`
 
-این Plan کد اجرایی نیست. تا زمانی که Gateهای مشخص‌شده در Decision Record بسته نشوند، هیچ Migration یا Authentication Implementation اجرا نمی‌شود.
+این Plan مبنای اجرای Phase 3 است و Implementation حداقلی آن انجام شده است. مواردی که به Secret، Clerk Dashboard، Remote D1 یا تست Browser واقعی نیاز دارند، هنوز باید Operational Verification شوند.
 
 ---
 
@@ -37,36 +37,41 @@
 
 ---
 
-## 1. Gate A — Provider POC و Matrix
+## 1. Gate A — Clerk Configuration و Verification
 
-### کارها
+### وضعیت
 
-1. دو POC کوچک و دورریختنی برای Clerk و Supabase:
-   - OAuth/OIDC redirect و callback.
-   - دریافت User Subject.
-   - اعتبارسنجی JWT/JWKS در محیط Worker.
-   - Cookie/session در Same-Origin Frontend.
-   - Logout و expiration.
-   - پشتیبانی Invite/Staff و MFA.
-2. بررسی راه‌اندازی/هزینه/Region و خروج از Vendor.
-3. ثبت Origin و Redirect URIهای Dev/Staging/Prod.
-4. عدم ورود Secret یا Provider Token به Repository.
+Clerk به‌عنوان Provider نهایی انتخاب و Adapter آن در Frontend/Worker پیاده‌سازی شده است. Supabase بعد از مقایسه انتخاب نشد تا برای این L1، Cookie/Storage و Staff Workflow سفارشی اضافه نشود.
 
-### خروجی
+### تنظیمات لازم در Clerk/Environment
+
+1. OAuth Connectionهای موردنیاز را فعال کنید.
+2. Session Token Template با Claimهای زیر بسازید:
+   - `email`
+   - `email_verified`
+   - `first_name`
+   - `last_name`
+   - `jti`
+3. Secretهای Worker را با Wrangler تنظیم کنید:
 
 ```text
-Provider Matrix
-POC Result
-Approved Provider
-Rejected Alternatives + Reason
-Required Environment Variables
+CLERK_JWT_KEY
+CLERK_JWT_ISSUER
+CLERK_AUTHORIZED_PARTIES
+BOOTSTRAP_ADMIN_PROVIDER_SUBJECT
 ```
+
+4. `VITE_CLERK_PUBLISHABLE_KEY` و در صورت استفاده `VITE_CLERK_JWT_TEMPLATE` را در Frontend تنظیم کنید.
+5. Staff Invitation و MFA اجباری را در Clerk فعال کنید.
+6. Origin/Redirect URIهای Dev/Staging/Prod را ثبت کنید.
+7. Secret یا Provider Token وارد Repository نشود.
 
 ### Exit Criteria
 
-- Provider دقیقاً انتخاب شده باشد.
-- Worker بتواند issuer، audience، signature، `exp` و `nbf` را بررسی کند.
-- Session strategy و Logout semantics قابل تست باشد.
+- Clerk configuration واقعی ثبت شده باشد.
+- Worker issuer، signature، `exp`، `nbf` و `azp` را verify کند.
+- Session token در `localStorage` توسط Application ذخیره نشود.
+- Logout، JTI revocation و Clerk `signOut()` قابل تست باشد.
 
 ---
 
@@ -355,10 +360,12 @@ Service Worker بعداً فقط allow-list محتوای عمومی را Cache �
 ## 10. Final Plan Verdict
 
 ```text
-PLAN: READY AS DRAFT
-IMPLEMENTATION: BLOCKED
-MIGRATION: NOT APPROVED
-PRODUCTION: RELEASE BLOCKED
+PLAN: COMPLETE
+IMPLEMENTATION: COMPLETE IN REPOSITORY
+LOCAL MIGRATION: APPLIED
+PRODUCTION CONFIGURATION: PENDING OWNER SECRETS
+REMOTE MIGRATION: BLOCKED BY PLACEHOLDER DATABASE ID
+PRODUCTION: RELEASE BLOCKED UNTIL OPERATIONAL TESTS
 ```
 
 ترتیب کم‌ریسک اجرای واقعی:

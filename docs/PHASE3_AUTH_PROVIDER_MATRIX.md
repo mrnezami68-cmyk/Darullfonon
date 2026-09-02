@@ -1,8 +1,8 @@
 # Phase 3 Auth Provider Matrix — Clerk vs Supabase
 
-**تاریخ بررسی:** ۲ سپتامبر ۲۰۲۶  
-**وضعیت:** COMPARISON ONLY — Provider انتخاب نشده  
-**Scope تصمیم‌شده:** Student OAuth/OIDC، Identity System مشترک برای Staff، Roleهای جدا، Staff Invite-only + MFA اجباری  
+**تاریخ بررسی:** ۲ سپتامبر ۲۰۲۶
+**وضعیت:** Clerk SELECTED — Implementation انجام شد؛ Environment Verification باقی است
+**Scope تصمیم‌شده:** Student OAuth/OIDC، Identity System مشترک برای Staff، Roleهای جدا، Staff Invite-only + MFA اجباری
 **هدف Complexity:** L1 — Simple
 
 این Matrix جایگزین POC واقعی نیست. اطلاعات قابلیت‌ها از مستندات رسمی بررسی‌شده آمده، اما سازگاری نهایی با Cloudflare Worker، D1، PWA Offline و Originهای واقعی باید در POC همین Repository تست شود.
@@ -106,7 +106,7 @@ Online + valid session → Worker re-authorizes → sync
 ### Worker
 
 - JWT/Session با الگوریتم allow-list اعتبارسنجی شود.
-- `issuer`، `audience`، `exp`، `nbf` و در صورت وجود `azp` بررسی شود.
+- `issuer`، `exp`، `nbf` و `azp` بررسی شوند؛ `audience` در صورت استفاده از آن enforce شود.
 - کلیدها از JWKS/Provider رسمی و با Cache محدود دریافت شوند.
 - Token جعلی، منقضی و Origin نادرست رد شود.
 - Worker با SDK کامل Provider به Bundle/runtime وابسته نشود مگر دلیل روشن وجود داشته باشد.
@@ -172,9 +172,10 @@ Provider فقط زمانی `APPROVED` شود که:
 ## 7. Verdict
 
 ```text
-Clerk: CANDIDATE — POC REQUIRED
-Supabase Auth: CANDIDATE — POC REQUIRED
+Clerk: SELECTED FOR PHASE 3
+Supabase Auth: NOT SELECTED — more custom Cookie/Storage/Staff work for this L1
 Cloudflare Access: مناسب‌تر برای Staff/Internal Edge، نه Student اصلی
-Provider Selection: DECISION REQUIRED
-Implementation: BLOCKED تا POC و Policy approval
+Provider Selection: COMPLETE
+Implementation: COMPLETE IN REPOSITORY
+Operational Verification: PENDING Clerk keys, issuer, template, OAuth connection and MFA setup
 ```

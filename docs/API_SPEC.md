@@ -1,9 +1,9 @@
 # API SPEC — دارالفنون
 
-**نسخه:** 0.1  
-**Base URL:** `/api`  
-**محیط فعلی:** Local Worker + D1  
-**احراز هویت:** Demo Role در Development
+**نسخه:** 0.2
+**Base URL:** `/api`
+**محیط فعلی:** Cloudflare Worker + D1 + Clerk
+**احراز هویت:** Clerk OAuth/OIDC Bearer Token؛ Role/Status فقط از D1 و Backend
 
 ---
 
@@ -32,13 +32,10 @@ Headerهای عمومی:
 
 ```text
 Content-Type: application/json
+Authorization: Bearer <short-lived Clerk session token>
 ```
 
-برای عملیات Master در Development:
-
-```text
-X-Demo-Role: master
-```
+Token را Application در `localStorage` ذخیره نمی‌کند. Worker `RS256`، issuer، expiration، not-before، authorized party و JTI را بررسی می‌کند.
 
 ---
 
@@ -98,15 +95,13 @@ X-Demo-Role: master
 
 - `404 LESSON_NOT_FOUND`
 
+### `GET /api/v1/progress`
+
+فهرست Progress فقط برای Student یا Teacher فعالِ احراز‌شده فعلی.
+
 ### `POST /api/v1/progress`
 
-ثبت یا به‌روزرسانی Progress کاربر Demo.
-
-Header اختیاری:
-
-```text
-X-Demo-User: demo-student
-```
+ثبت یا به‌روزرسانی Progress برای Student یا Teacher فعالِ احراز‌شده فعلی. `user_id` فقط از Clerk Subject نگاشت‌شده در Backend تعیین می‌شود؛ Header یا Body نمی‌تواند مالکیت را تغییر دهد.
 
 **Input:**
 
@@ -142,7 +137,7 @@ Content Typeهای فعلی:
 - `glossary`
 - `library`
 
-تمام Endpointهای زیر نیازمند `X-Demo-Role: master` در Development هستند.
+تمام Endpointهای زیر نیازمند `Authorization: Bearer <Clerk token>` و Role فعال `master` هستند. Admin در MVP مجوز مدیریت Content ندارد؛ دسترسی Content فقط با Backend Authorization کنترل می‌شود.
 
 ### `GET /api/v1/master/content/:type`
 
@@ -242,13 +237,7 @@ Content Typeهای فعلی:
 
 ### `POST /api/v1/quizzes/:id/submit`
 
-محاسبه نمره در Worker و ذخیره Attempt در جدول `quiz_attempts`.
-
-Header اختیاری:
-
-```text
-X-Demo-User: demo-student
-```
+محاسبه نمره در Worker و ذخیره Attempt در جدول `quiz_attempts` برای Student یا Teacher فعالِ احراز‌شده فعلی. پاسخ نهایی فقط Online ثبت می‌شود و حالت Offline آن در MVP مجاز نیست.
 
 **Input:**
 
@@ -265,11 +254,66 @@ X-Demo-User: demo-student
 
 **Errors:** `400 INVALID_ANSWERS`، `404 QUIZ_NOT_FOUND`، `409 QUIZ_EMPTY`، `413 PAYLOAD_TOO_LARGE`
 
+## Authentication و User Management
+
+### `GET /api/v1/auth/me`
+
+اعتبارسنجی Clerk Token و برگرداندن وضعیت App User فعلی.
+
+- اگر OAuth معتبر باشد ولی Onboarding انجام نشده باشد: `200` با `onboarded: false`.
+- Role و Status از D1 خوانده می‌شوند.
+- `provider_subject` و Token خام به Client برگردانده نمی‌شوند.
+
+**Errors:** `401 AUTHENTICATION_REQUIRED`، `401 INVALID_TOKEN`، `401 SESSION_REVOKED`، `503 AUTH_CONFIGURATION_REQUIRED`
+
+### `POST /api/v1/auth/onboarding/student`
+
+Student را فقط برای OAuth هویت‌دار با `email_verified` معتبر ایجاد و Active می‌کند. Role و Status از Route Policy می‌آیند و از Body دریافت نمی‌شوند.
+
+**Errors:** `401`، `403 EMAIL_VERIFICATION_REQUIRED`، `409 ACCOUNT_ROLE_CONFLICT`، `429 RATE_LIMITED`
+
+### `POST /api/v1/auth/teacher/application`
+
+درخواست Teacher را ایجاد می‌کند:
+
+```text
+role = teacher
+status = pending
+login_identifier = <base>@mt
+```
+
+این Endpoint Account فعال Teacher نمی‌سازد. `teachingField` الزامی و `bio` اختیاری است. ایجاد مجدد پس از `rejected` فقط با ارسال دوباره درخواست و Policy فعلی مجاز است.
+
+### `GET /api/v1/auth/teacher/application`
+
+درخواست خود Teacher را برای Role `teacher` برمی‌گرداند؛ حتی وضعیت `pending` یا `rejected` قابل مشاهده است.
+
+### `POST /api/v1/auth/logout`
+
+JTI توکن جاری را تا زمان Expiration در `auth_revoked_tokens` ثبت می‌کند و Frontend سپس `Clerk.signOut()` را اجرا می‌کند.
+
+### Admin Teacher Workflow
+
+```text
+GET  /api/v1/admin/teacher-applications?status=pending
+POST /api/v1/admin/teacher-applications/:id/approve
+POST /api/v1/admin/teacher-applications/:id/reject
+POST /api/v1/admin/users/:id/suspend
+POST /api/v1/admin/master-provision
+```
+
+همه Endpointهای Admin نیازمند Clerk Authentication و Role فعال `admin` هستند. Approve/Reject با شرط وضعیت `pending` و D1 Batch انجام می‌شود تا درخواست دوباره یا Race Condition به Transition تکراری منجر نشود. رد درخواست Reason معتبر می‌خواهد و عملیات در `audit_logs` ثبت می‌شود.
+
+`master-provision` فقط Role `master` را ایجاد می‌کند و Invite واقعی Clerk باید از مسیر Provider انجام شده باشد. ساخت Admin عمومی ممنوع است؛ Bootstrap Admin فقط با `BOOTSTRAP_ADMIN_PROVIDER_SUBJECT` انجام می‌شود.
+
 ## API Security Notes
 
-- Demo Role فقط برای Development است.
-- `X-Demo-Role` نباید در Production به‌عنوان Authorization استفاده شود.
-- Origin واقعی باید از طریق `ALLOWED_ORIGIN` تعیین شود.
+- Demo Role و Headerهای `X-Demo-Role`/`X-Demo-User` در Authorization وجود ندارند.
+- Origin واقعی باید از طریق `ALLOWED_ORIGIN` تعیین شود؛ بدون allow-list صریح، پاسخ Cross-Origin با `null` برگردانده می‌شود.
 - Worker خطای خام D1 را به Client برنمی‌گرداند.
 - Body درخواست به 64KB محدود شده است.
 - Dynamic Table Name فقط از Allowlist داخلی انتخاب می‌شود.
+- JWT فقط با `RS256` و Public Key تنظیم‌شده Clerk پذیرفته می‌شود.
+- Responseهای Auth، User، Admin و Mutation با `Cache-Control: no-store` ارسال می‌شوند.
+- Offline PWA فقط محتوای Published در Allowlist را Cache می‌کند و Protected Response را Cache نمی‌کند.
+- Rate Limit فعلی D1-backed baseline است؛ برای Production باید Cloudflare WAF/Edge Limit و Rate Limit خود Provider نیز فعال باشد.

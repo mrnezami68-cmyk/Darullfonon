@@ -114,7 +114,7 @@ function masterPayload(section, record) {
 
 function MasterApiBanner({ loading, error, onRetry }) {
   if (loading) return <div className="master-api-banner master-api-loading" role="status"><span className="loading-spinner" /> در حال همگام‌سازی با Worker و D1...</div>
-  if (error) return <div className="master-api-banner master-api-fallback" role="status"><span>حالت Demo: API در دسترس نیست و داده محلی نمایش داده می‌شود.</span><button type="button" onClick={onRetry}>تلاش دوباره</button></div>
+  if (error) return <div className="master-api-banner master-api-fallback" role="alert"><span>داده مدیریت محتوا از Backend دریافت نشد؛ اطلاعات محلی به‌عنوان منبع اعتماد نمایش داده نمی‌شود.</span><button type="button" onClick={onRetry}>تلاش دوباره</button></div>
   return <div className="master-api-banner master-api-live" role="status"><Check size={13} /> متصل به Worker و D1 · تغییرات این بخش در API ذخیره می‌شوند.</div>
 }
 
@@ -176,16 +176,9 @@ function RelationCard({ left, leftValue, connector, right, rightValue, tone, onR
 
 function SimpleMasterPage({ section }) { const item = masterNav.find((entry) => entry.id === section); const Icon = item?.icon || Settings; return <div className="master-simple-page"><span className="master-simple-icon"><Icon size={25} /></span><span className="master-kicker">پنل مدیریت</span><h1>{item?.label || 'بخش'}</h1><p>این بخش در ادامه MVP با همان زبان کاربردی و یکپارچه تکمیل می‌شود.</p></div> }
 
-export default function MasterView({ onExit }) {
+export default function MasterView({ onExit, appUser }) {
   const [section, setSection] = useState('dashboard')
-  const [records, setRecords] = useState(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('darullfonon-master-records'))
-      return Object.fromEntries(Object.keys(initialRecords).map((key) => [key, Array.isArray(stored?.[key]) ? stored[key] : initialRecords[key]]))
-    } catch {
-      return initialRecords
-    }
-  })
+  const [records, setRecords] = useState(initialRecords)
   const [form, setForm] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mutationNotice, setMutationNotice] = useState('')
@@ -199,9 +192,6 @@ export default function MasterView({ onExit }) {
     setRecords((current) => ({ ...current, [apiSection]: remotePayload.items.map((item) => normalizeMasterRecord(apiSection, item)) }))
     setMutationNotice('')
   }, [remotePayload, apiSection])
-  useEffect(() => {
-    try { localStorage.setItem('darullfonon-master-records', JSON.stringify(records)) } catch { /* Demo mode can continue without persistence. */ }
-  }, [records])
   const activeLabel = masterNav.find((entry) => entry.id === section)?.label || 'داشبورد'
   function select(next) { setSection(next); setForm(null); setMutationNotice(''); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   function updateLocalRecord(type, record) {
@@ -218,9 +208,7 @@ export default function MasterView({ onExit }) {
       setForm(null)
       await reload()
     } catch (error) {
-      updateLocalRecord(type, record)
-      setMutationNotice(`حالت Demo: ذخیره در API انجام نشد و تغییر محلی نگه داشته شد. ${error.message || ''}`)
-      setForm(null)
+      setMutationNotice(`ذخیره در Backend انجام نشد. ${error.message || ''}`)
     }
   }
   async function archiveRecord(id) {
@@ -231,9 +219,8 @@ export default function MasterView({ onExit }) {
       setMutationNotice('')
       await reload()
     } catch (error) {
-      updateLocalRecord(type, { ...records[type].find((item) => item.id === id), status: 'Archived', updated: 'همین حالا' })
-      setMutationNotice(`حالت Demo: بایگانی در API انجام نشد و تغییر محلی نگه داشته شد. ${error.message || ''}`)
+      setMutationNotice(`بایگانی در Backend انجام نشد. ${error.message || ''}`)
     }
   }
-  return <div className="master-shell"><aside className={`master-sidebar ${sidebarOpen ? 'open' : ''}`}><div className="master-brand"><span className="master-logo">✦</span><div><strong>دارالفنون</strong><small>پنل مدیریت</small></div><button type="button" className="master-close" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div><div className="master-profile"><span>م</span><div><strong>استاد محتوا</strong><small>دسترسی اصلی</small></div></div><nav className="master-nav">{masterNav.map((item) => { const Icon = item.icon; return <button type="button" className={section === item.id ? 'active' : ''} key={item.id} onClick={() => select(item.id)}><Icon size={17} /><span>{item.label}</span>{section === item.id && <ChevronLeft size={14} />}</button> })}</nav><div className="master-sidebar-bottom"><button type="button" onClick={onExit}><ArrowLeft size={16} /> بازگشت به Student</button><span>دارالفنون · Master 1.0</span></div></aside><div className="master-main"><header className="master-header"><button type="button" className="master-menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div><span className="master-breadcrumb">Master / {activeLabel}</span><h2>{activeLabel}</h2></div><div className="master-header-actions"><div className="master-header-search" role="search" aria-label="جست‌وجوی محتوا"><Search size={17} /><span>جست‌وجوی محتوا</span></div><span className="master-bell" role="img" aria-label="اعلان‌ها">◌</span><span className="master-header-avatar">م</span></div></header><main className="master-content">{section === 'dashboard' ? <MasterDashboard onSelect={select} /> : section === 'relations' ? <RelationsPage /> : sectionMeta[section] ? <><MasterApiBanner loading={apiLoading} error={apiError} onRetry={reload} />{mutationNotice && <div className="master-api-banner master-api-fallback" role="alert">{mutationNotice}</div>}<RecordsPage section={section} records={records[section]} onAdd={() => setForm({ section })} onEdit={(record) => setForm({ section, record })} onArchive={archiveRecord} /></> : <SimpleMasterPage section={section} />}</main></div>{form && <RecordForm section={form.section} record={form.record} onCancel={() => setForm(null)} onSave={saveRecord} />}</div>
+  return <div className="master-shell"><aside className={`master-sidebar ${sidebarOpen ? 'open' : ''}`}><div className="master-brand"><span className="master-logo">✦</span><div><strong>دارالفنون</strong><small>پنل مدیریت</small></div><button type="button" className="master-close" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div><div className="master-profile"><span>{(appUser?.firstName || 'م').slice(0, 1)}</span><div><strong>{[appUser?.firstName, appUser?.lastName].filter(Boolean).join(' ') || 'Master'}</strong><small>دسترسی مدیریت محتوا</small></div></div><nav className="master-nav">{masterNav.map((item) => { const Icon = item.icon; return <button type="button" className={section === item.id ? 'active' : ''} key={item.id} onClick={() => select(item.id)}><Icon size={17} /><span>{item.label}</span>{section === item.id && <ChevronLeft size={14} />}</button> })}</nav><div className="master-sidebar-bottom"><button type="button" onClick={onExit}><ArrowLeft size={16} /> خروج از حساب</button><span>دارالفنون · Master 1.0</span></div></aside><div className="master-main"><header className="master-header"><button type="button" className="master-menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div><span className="master-breadcrumb">Master / {activeLabel}</span><h2>{activeLabel}</h2></div><div className="master-header-actions"><div className="master-header-search" role="search" aria-label="جست‌وجوی محتوا"><Search size={17} /><span>جست‌وجوی محتوا</span></div><span className="master-bell" role="img" aria-label="اعلان‌ها">◌</span><span className="master-header-avatar">م</span></div></header><main className="master-content">{section === 'dashboard' ? <MasterDashboard onSelect={select} /> : section === 'relations' ? <RelationsPage /> : sectionMeta[section] ? <><MasterApiBanner loading={apiLoading} error={apiError} onRetry={reload} />{mutationNotice && <div className="master-api-banner master-api-fallback" role="alert">{mutationNotice}</div>}{apiLoading ? <div className="admin-empty"><span className="loading-spinner" /><strong>در حال دریافت محتوای Backend...</strong></div> : apiError ? <div className="admin-empty"><Shield size={24} /><strong>منبع مدیریت محتوا در دسترس نیست.</strong><span>تا بازگشت Backend، تغییر یا نمایش داده محلی غیرفعال است.</span></div> : <RecordsPage section={section} records={records[section]} onAdd={() => setForm({ section })} onEdit={(record) => setForm({ section, record })} onArchive={archiveRecord} />}</> : <SimpleMasterPage section={section} />}</main></div>{form && <RecordForm section={form.section} record={form.record} onCancel={() => setForm(null)} onSave={saveRecord} />}</div>
 }

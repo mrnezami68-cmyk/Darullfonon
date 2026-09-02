@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { ClerkProvider, SignInButton, useAuth } from '@clerk/clerk-react'
 import {
   ArrowLeft,
   ArrowUpLeft,
@@ -31,7 +32,9 @@ import {
 import './styles.css'
 import LearningViews from './LearningViews'
 import StudentViews from './StudentViews'
+import AdminView from './AdminView'
 import MasterView from './MasterView'
+import { applyTeacher, getAuthMe, logout, onboardStudent, setAuthTokenGetter } from './api'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined))
@@ -151,41 +154,107 @@ function StatusPill({ children, tone = 'neutral' }) {
   return <span className={`status-pill status-${tone}`}><span className="status-dot" />{children}</span>
 }
 
-function DemoRoleGate({ onSelect }) {
-  return (
-    <div className="role-gate-shell">
-      <div className="role-gate-ornament" aria-hidden="true"><span>✦</span></div>
-      <div className="role-gate-card">
-        <Brand />
-        <span className="section-kicker">نسخه نمایشی MVP</span>
-        <h1>چطور وارد دارالفنون می‌شوی؟</h1>
-        <p>برای مشاهده تجربه فعلی، نقش موردنظر را انتخاب کن. این انتخاب فقط برای تست است و احراز هویت واقعی نیست.</p>
-        <div className="role-options">
-          <button type="button" className="role-option role-student" onClick={() => onSelect('student')}>
-            <span className="role-option-icon"><GraduationCap size={22} /></span>
-            <span><strong>ورود به مسیر Student</strong><small>یادگیری، مطالعه، آزمون و پیشرفت</small></span>
-            <ArrowLeft size={17} />
-          </button>
-          <button type="button" className="role-option role-master" onClick={() => onSelect('master')}>
-            <span className="role-option-icon"><ShieldCheck size={22} /></span>
-            <span><strong>ورود به پنل Master</strong><small>مدیریت محتوا و مسیرهای آموزشی</small></span>
-            <ArrowLeft size={17} />
-          </button>
-        </div>
-        <span className="role-gate-note"><Sparkles size={14} /> نقش‌ها در این نسخه آزمایشی قابل تغییر هستند.</span>
-      </div>
-    </div>
-  )
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const CLERK_JWT_TEMPLATE = import.meta.env.VITE_CLERK_JWT_TEMPLATE || ''
+
+function AuthShell({ children, kicker = 'ورود امن دارالفنون' }) {
+  return <div className="auth-shell"><div className="auth-card"><Brand /><span className="section-kicker">{kicker}</span>{children}</div></div>
 }
 
-function App() {
+function ClerkTokenBridge() {
+  const { getToken, isLoaded, isSignedIn } = useAuth()
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setAuthTokenGetter(null)
+      return undefined
+    }
+    setAuthTokenGetter(() => CLERK_JWT_TEMPLATE ? getToken({ template: CLERK_JWT_TEMPLATE }) : getToken())
+    return () => setAuthTokenGetter(null)
+  }, [getToken, isLoaded, isSignedIn])
+  return null
+}
+
+function AuthLanding() {
+  return <AuthShell kicker="مدرسه دانش مدرن"><h1>به مسیر یادگیری‌ات برگرد.</h1><p>برای ورود یا ثبت‌نام، از حساب OAuth خود استفاده کن. نقش و دسترسی تو فقط بعد از بررسی Backend تعیین می‌شود.</p><div className="auth-policy-note"><ShieldCheck size={18} /><span>دارالفنون رمز عبور حساب OAuth را دریافت یا ذخیره نمی‌کند.</span></div><SignInButton mode="modal" fallbackRedirectUrl="/"><button className="primary-button auth-action" type="button">ورود / ثبت‌نام با OAuth <ArrowLeft size={17} /></button></SignInButton></AuthShell>
+}
+
+function AuthLoading({ message = 'در حال بررسی نشست امن...' }) {
+  return <AuthShell><div className="auth-loading"><span className="loading-spinner" /><strong>{message}</strong><span>لطفاً چند لحظه صبر کن.</span></div></AuthShell>
+}
+
+function AuthConfigurationMissing() {
+  return <AuthShell kicker="پیکربندی لازم است"><h1>احراز هویت هنوز پیکربندی نشده است.</h1><p>برای اجرای نسخه واقعی، کلید عمومی Frontend مربوط به Clerk باید در متغیر <code>VITE_CLERK_PUBLISHABLE_KEY</code> قرار بگیرد.</p><div className="auth-policy-note"><ShieldCheck size={18} /><span>مسیر Demo Role عمداً در Production غیرفعال است.</span></div></AuthShell>
+}
+
+function OnboardingPanel({ identity, existingUser, onComplete }) {
+  const [mode, setMode] = useState(existingUser?.role === 'teacher' ? 'teacher' : '')
+  const [teachingField, setTeachingField] = useState('')
+  const [bio, setBio] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  async function submit(event) {
+    event.preventDefault()
+    setBusy(true)
+    setErrorMessage('')
+    try {
+      if (mode === 'student') await onboardStudent()
+      else await applyTeacher({ teachingField, bio })
+      await onComplete()
+    } catch (error) {
+      setErrorMessage(error.message || 'ثبت اطلاعات انجام نشد.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <AuthShell kicker="تکمیل ثبت‌نام"><h1>{existingUser ? 'درخواستت را دوباره ارسال کن.' : 'مسیرت را انتخاب کن.'}</h1><p>هویت OAuth تأیید شد. حالا نوع استفاده از دارالفنون را مشخص کن.</p><div className="auth-identity-summary"><strong>{identity?.firstName || identity?.email || 'کاربر OAuth'}</strong><span>{identity?.email || 'ایمیل تأییدشده از Provider'}</span></div>{!mode && <div className="auth-choice-grid"><button type="button" className="auth-choice" onClick={() => setMode('student')}><GraduationCap size={22} /><strong>Student</strong><small>یادگیری، مطالعه، آزمون و پیشرفت</small></button><button type="button" className="auth-choice" onClick={() => setMode('teacher')}><ShieldCheck size={22} /><strong>Teacher</strong><small>درخواست عضویت آموزشی با بررسی Admin</small></button></div>}{mode && <form className="auth-form" onSubmit={submit}><div className="auth-selected"><span>{mode === 'student' ? 'Student' : 'Teacher'}</span><button type="button" onClick={() => setMode('')}>تغییر</button></div>{mode === 'teacher' && <><label>حوزه تدریس<input value={teachingField} onChange={(event) => setTeachingField(event.target.value)} minLength="2" maxLength="160" required placeholder="مثلاً اقتصاد کلان" /></label><label>معرفی کوتاه<textarea value={bio} onChange={(event) => setBio(event.target.value)} maxLength="2000" rows="4" placeholder="چند خط درباره تجربه آموزشی" /></label></>}{errorMessage && <div className="auth-error" role="alert">{errorMessage}</div>}<button className="primary-button auth-action" type="submit" disabled={busy}>{busy ? 'در حال ثبت...' : mode === 'student' ? 'فعال‌سازی حساب Student' : 'ثبت درخواست Teacher'} <ArrowLeft size={17} /></button></form>}</AuthShell>
+}
+
+function AccountStatusPanel({ user, onSignOut }) {
+  const messages = { pending: 'درخواست Teacher تو ثبت شده و در انتظار بررسی Admin است.', rejected: 'درخواست Teacher فعلاً پذیرفته نشده است.', suspended: 'حساب تو موقتاً غیرفعال شده است.' }
+  return <AuthShell kicker="وضعیت حساب"><div className="auth-status-icon"><ShieldCheck size={28} /></div><h1>{user.status === 'pending' ? 'درخواستت در حال بررسی است.' : user.status === 'rejected' ? 'نیاز به اصلاح و ارسال دوباره' : 'دسترسی موقتاً متوقف است.'}</h1><p>{messages[user.status]}</p>{user.loginIdentifier && <div className="auth-identity-summary"><strong>{user.loginIdentifier}</strong><span>{user.role} · {user.status}</span></div>}{user.rejectionReason && <div className="auth-error">دلیل ثبت‌شده: {user.rejectionReason}</div>}{user.status === 'rejected' && <p>می‌توانی با خروج و ورود دوباره، اطلاعات درخواست را اصلاح و دوباره ارسال کنی.</p>}<button className="outline-button auth-action" type="button" onClick={onSignOut}>خروج از حساب</button></AuthShell>
+}
+
+function AuthExperience() {
+  const { isLoaded, isSignedIn, signOut } = useAuth()
+  const [me, setMe] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+  const refresh = async () => {
+    setLoading(true)
+    setErrorMessage('')
+    try { setMe(await getAuthMe()) } catch (error) { setErrorMessage(error.message || 'بررسی حساب انجام نشد.') } finally { setLoading(false) }
+  }
+  useEffect(() => {
+    if (!isLoaded) return
+    if (!isSignedIn) { setMe(null); setLoading(false); return }
+    refresh()
+  }, [isLoaded, isSignedIn])
+  async function secureSignOut() {
+    try { await logout() } catch { /* Clerk signOut remains the source of truth. */ }
+    setAuthTokenGetter(null)
+    await signOut()
+  }
+  if (!isLoaded) return <AuthLoading />
+  if (!isSignedIn) return <AuthLanding />
+  if (loading) return <AuthLoading />
+  if (errorMessage) return <AuthShell kicker="خطای نشست"><h1>بررسی حساب انجام نشد.</h1><p>{errorMessage}</p><button className="primary-button auth-action" type="button" onClick={refresh}>تلاش دوباره <ArrowLeft size={17} /></button></AuthShell>
+  if (!me?.onboarded) return <OnboardingPanel identity={me?.identity} onComplete={refresh} />
+  const user = me.user
+  if (user.status === 'rejected' && user.role === 'teacher') return <OnboardingPanel identity={me.identity} existingUser={user} onComplete={refresh} />
+  if (user.status === 'pending' || user.status === 'suspended') return <AccountStatusPanel user={user} onSignOut={secureSignOut} />
+  if (user.role === 'admin') return <AdminView appUser={user} onSignOut={secureSignOut} />
+  if (user.role === 'master') return <MasterView appUser={user} onExit={secureSignOut} />
+  return <App appUser={user} onSignOut={secureSignOut} />
+}
+
+function App({ appUser, onSignOut }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('darullfonon-theme') || 'light')
-  const [demoRole, setDemoRole] = useState(() => localStorage.getItem('darullfonon-demo-role') || '')
-  const [showRoleGate, setShowRoleGate] = useState(() => !localStorage.getItem('darullfonon-demo-role'))
   const [active, setActive] = useState('home')
   const [learningView, setLearningView] = useState('overview')
   const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const displayName = [appUser?.firstName, appUser?.lastName].filter(Boolean).join(' ') || appUser?.email || 'Student'
+  const displayInitial = displayName.slice(0, 1).toUpperCase()
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -214,24 +283,6 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function selectDemoRole(nextRole) {
-    localStorage.setItem('darullfonon-demo-role', nextRole)
-    setDemoRole(nextRole)
-    setShowRoleGate(false)
-    setActive(nextRole === 'master' ? 'master' : 'home')
-    setLearningView('overview')
-  }
-
-  function changeDemoRole() {
-    localStorage.removeItem('darullfonon-demo-role')
-    setDemoRole('')
-    setShowRoleGate(true)
-    setMenuOpen(false)
-  }
-
-  if (showRoleGate) return <DemoRoleGate onSelect={selectDemoRole} />
-  if (active === 'master') return <MasterView onExit={() => selectDemoRole('student')} />
-
   return (
     <div className={`app-shell theme-${theme}`}>
       <header className="site-header">
@@ -256,8 +307,8 @@ function App() {
             </button>
             <ThemeMenu theme={theme} onChange={setTheme} />
             <button className="profile-button" type="button" onClick={() => navigate('profile')}>
-              <span className="avatar">ن</span>
-              <span className="profile-name">نیما</span>
+              <span className="avatar">{displayInitial}</span>
+              <span className="profile-name">{displayName}</span>
               <ChevronDown size={14} />
             </button>
           </div>
@@ -272,8 +323,8 @@ function App() {
               <button className="icon-button" type="button" aria-label="بستن منو" onClick={() => setMenuOpen(false)}><X size={20} /></button>
             </div>
             <div className="drawer-user">
-              <span className="avatar avatar-large">ن</span>
-              <div><strong>سلام نیما</strong><span>به مسیر یادگیری‌ات خوش آمدی</span></div>
+              <span className="avatar avatar-large">{displayInitial}</span>
+              <div><strong>سلام {displayName}</strong><span>به مسیر یادگیری‌ات خوش آمدی</span></div>
             </div>
             <nav className="drawer-nav">
               {navItems.map((item) => {
@@ -282,7 +333,7 @@ function App() {
               })}
               <button type="button" onClick={() => setToast('کتابخانه در منوی منابع قرار دارد.')}><Library size={19} /><span>منابع و کتابخانه</span><ChevronLeft size={16} /></button>
             </nav>
-            <div className="drawer-footer"><span>دارالفنون</span><button type="button" onClick={() => navigate('master')}>پنل Master</button></div>
+            <div className="drawer-footer"><span>حساب {appUser?.role || 'student'}</span><button type="button" onClick={onSignOut}>خروج از حساب</button></div>
           </aside>
         </div>
       )}
@@ -348,7 +399,7 @@ function App() {
         ) : active === 'learning' ? (
           <LearningViews subview={learningView} onSubview={openLearningView} onBack={() => openLearningView('overview')} theme={theme} onTheme={setTheme} />
         ) : ['knowledge', 'library', 'lab', 'profile'].includes(active) ? (
-          <StudentViews active={active} onGo={navigate} />
+          <StudentViews active={active} onGo={navigate} appUser={appUser} />
         ) : (
           <section className="placeholder-page page-container">
             <div className="placeholder-mark"><Sparkles size={25} /></div>
@@ -360,7 +411,7 @@ function App() {
         )}
       </main>
 
-      <footer className="site-footer"><div className="page-container footer-inner"><Brand compact /><span>دانش، وقتی ماندگار می‌شود که ساخته شود.</span><div className="footer-meta"><span>دارالفنون · نسخه آزمایشی ۱.۰</span><button type="button" onClick={() => navigate('master')}>ورود به پنل Master <ArrowLeft size={13} /></button></div></div></footer>
+      <footer className="site-footer"><div className="page-container footer-inner"><Brand compact /><span>دانش، وقتی ماندگار می‌شود که ساخته شود.</span><div className="footer-meta"><span>حساب {appUser?.role || 'student'} · ورود امن</span><button type="button" onClick={onSignOut}>خروج از حساب <ArrowLeft size={13} /></button></div></div></footer>
 
       <nav className="mobile-bottom-nav" aria-label="ناوبری موبایل">{navItems.map((item) => { const Icon = item.icon; return <button type="button" key={item.id} className={active === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><Icon size={19} strokeWidth={active === item.id ? 2.2 : 1.7} /><span>{item.label}</span></button> })}<button type="button" onClick={() => setMenuOpen(true)}><MoreHorizontal size={19} /><span>بیشتر</span></button></nav>
 
@@ -369,6 +420,11 @@ function App() {
   )
 }
 
-createRoot(document.getElementById('root')).render(<App />)
+function Root() {
+  if (!CLERK_PUBLISHABLE_KEY) return <AuthConfigurationMissing />
+  return <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}><ClerkTokenBridge /><AuthExperience /></ClerkProvider>
+}
+
+createRoot(document.getElementById('root')).render(<Root />)
 
 export default App

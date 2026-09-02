@@ -1,8 +1,8 @@
 # Phase 3 Authentication — Decision Record
 
-**تاریخ ثبت:** ۲ سپتامبر ۲۰۲۶  
-**Branch:** `arena/01a05d5b-darullfonon`  
-**وضعیت:** PARTIALLY DECIDED — Implementation هنوز Blocked  
+**تاریخ ثبت:** ۲ سپتامبر ۲۰۲۶
+**Branch:** `arena/01a05d5b-darullfonon`
+**وضعیت:** PROVIDER SELECTED — Implementation انجام شد؛ Operational Verification باقی است
 **مرجع Audit:** `docs/PHASE3_INITIAL_AUTH_AUDIT.md`
 
 این سند فقط تصمیم‌هایی را ثبت می‌کند که در همین Session به‌صورت واقعی انتخاب شدند. برای تصمیم‌های انتخاب‌نشده، نظر شخص یا Owner جعل نشده و وضعیت `PENDING INPUT` باقی مانده است.
@@ -16,7 +16,7 @@
 | Student Authentication | OAuth/OIDC | CONFIRMED FOR EVALUATION |
 | Staff Identity System | Provider مشترک با Student، با Policy جدا | CONFIRMED FOR EVALUATION |
 | Teacher و Master | دو Role مستقل | CONFIRMED |
-| Provider نهایی | مقایسه بی‌طرفانه Clerk و Supabase | PENDING — انتخاب نشده |
+| Provider نهایی | Clerk | SELECTED FOR IMPLEMENTATION — secrets/POC pending |
 | Teacher/Master Permission Matrix | Teacher آموزشی، Master محتوا، Admin هویت | CONFIRMED FOR PLAN |
 | Recovery Policy | upstream IdP مسئول Recovery است | CONFIRMED FOR PLAN |
 | Email Verification Trust Policy | فقط `email_verified` معتبر upstream | CONFIRMED |
@@ -61,9 +61,11 @@ Teacher، Master و Admin در همان Identity System قرار می‌گیرن
 
 این تصمیم از ایجاد دو Identity System جدا جلوگیری می‌کند، اما برای Staff به Invite، MFA و محدودیت‌های Origin/Redirect نیاز دارد.
 
-### تصمیم 4 — Provider Comparison
+### تصمیم 4 — Provider Selection
 
-Clerk و Supabase باید با POC محدود و Matrix زیر مقایسه شوند:
+**Clerk برای Phase 3 انتخاب شد.** دلیل انتخاب، هم‌خوانی مستقیم‌تر با نیازهای User Management، OAuth، Staff Invite/MFA و Session/JWT با کمترین کد اختصاصی در PWA/Worker است. Supabase به‌عنوان گزینه بررسی‌شده انتخاب نشد؛ Browser Storage/Cookie integration و Staff Workflow آن برای این L1 به POC بیشتری نیاز داشت.
+
+Clerk باید با POC عملیاتی محدود در همین معماری تأیید شود:
 
 ```text
 OAuth/OIDC integration with Cloudflare Worker
@@ -112,11 +114,18 @@ admin
 
 ---
 
-## 3. مواردی که عمداً تصمیم‌گیری نشده‌اند
+## 3. موارد اجرای عملیاتی باقی‌مانده
 
-### 3.1 Provider
+### 3.1 Clerk Configuration
 
-`PENDING INPUT` — مقایسه انجام می‌شود؛ انتخاب نهایی پس از دیدن POC و هزینه/Region انجام شود.
+Clerk انتخاب شده است، اما این موارد باید در محیط واقعی تنظیم و تست شوند:
+
+- Clerk Instance/Environment واقعی.
+- OAuth Connections فعال.
+- Session Token Template شامل `email`، `email_verified`، `first_name` و `last_name`.
+- JWT Public Key، Issuer و Authorized Parties.
+- Staff Invitation و MFA enforcement.
+- هزینه، Region و شرایط خروج از Vendor.
 
 ### 3.2 Email Verification
 
@@ -153,18 +162,16 @@ Offline Staff/Admin: no
 
 ### 3.6 Session Strategy
 
-Constraint پروژه باقی است:
+برای Implementation فعلی:
 
 ```text
-Session در localStorage مرجع امنیتی نیست.
+Clerk SDK session → short-lived token in memory → Authorization: Bearer
+Worker JWT verification → D1 user/status/role authorization
 ```
 
-گزینه Plan:
+Application هیچ Tokenی را در `localStorage` یا `sessionStorage` نمی‌نویسد. Logout ابتدا JTI توکن جاری را در `auth_revoked_tokens` revoke می‌کند و سپس `signOut()` کلاینت Clerk را اجرا می‌کند.
 
-- Same-origin Worker BFF با Cookie `HttpOnly; Secure; SameSite=Lax/Strict`.
-- یا Session Cookie رسمی Provider، فقط پس از بررسی دقیق دامنه، Logout و Revocation.
-
-انتخاب نهایی بعد از Provider POC.
+این Strategy برای کاهش Complexity انتخاب شده است؛ Production باید با Clerk Session Template، expiration کوتاه، CSP و XSS test عملیاتی تأیید شود.
 
 ---
 
@@ -195,7 +202,14 @@ User ID مستقل، تصادفی و غیرقابل حدس خواهد بود؛ �
 
 ## 5. Migration Gate
 
-هیچ Migrationی با این Decision Record مجاز نشده است.
+Migrationهای افزایشی Authentication برای Clerk تصویب و فقط روی Local D1 اجرا شدند:
+
+```text
+0003_authentication.sql
+0004_rate_limits.sql
+
+Remote D1: NOT APPLIED — database_id هنوز Placeholder است
+```
 
 ### Migration آینده — فرم ثبت قبل از اجرا
 
@@ -221,7 +235,8 @@ Rollback consideration:
   با forward fix یا restore تأییدشده انجام شود.
 
 Approval:
-  PENDING INPUT — Owner و زمان Remote D1 مشخص نیست.
+  Local: APPROVED AND APPLIED
+  Remote: BLOCKED — Owner، Database ID و زمان Remote D1 مشخص نیست.
 ```
 
 ---
@@ -229,17 +244,18 @@ Approval:
 ## 6. Gate فعلی
 
 ```text
-Provider Approved: NO
-Role Permission Matrix: YES FOR PLAN; endpoint details pending contract
+Provider Approved: YES FOR IMPLEMENTATION — Clerk
+Role Permission Matrix: YES FOR IMPLEMENTATION
 Email Verification Policy: YES — trusted upstream `email_verified` only
 Recovery Policy: YES — upstream IdP owns recovery
-Session Strategy: NO
+Session Strategy: YES FOR IMPLEMENTATION — Clerk short-lived token + D1 JTI revocation
 MFA/Invite Policy: YES — Invite-only + MFA required for Staff
 PWA Offline Reading Scope: YES FOR PLAN
-Migration Plan Approved: NO
+Migration Plan: LOCAL APPLIED; REMOTE BLOCKED
 
-IMPLEMENTATION: BLOCKED
-RELEASE: BLOCKED
+IMPLEMENTATION: COMPLETE IN REPOSITORY
+OPERATIONAL VERIFICATION: PENDING ENVIRONMENT CONFIGURATION
+RELEASE: BLOCKED UNTIL REMOTE/PRODUCTION TESTS
 ```
 
 تا تکمیل Gate بالا، تغییر در `worker/src/index.ts`، Migration، Session، Password یا Frontend Auth انجام نمی‌شود.

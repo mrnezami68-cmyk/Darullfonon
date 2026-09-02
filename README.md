@@ -59,11 +59,24 @@ npm run worker:typecheck
 - `docs/PHASE_ROADMAP_AND_EXECUTION_REVIEW.md` — وضعیت فازها، نقشه راه و چارچوب جلسه تصمیم‌گیری
 - `docs/PHASE3_AUTHENTICATION_CONSULTATION.md` — مشاوره Authentication و طراحی ثبت‌نام پیش از Phase 3
 - `docs/PHASE3_INITIAL_AUTH_AUDIT.md` — ممیزی اولیه Authentication و User Management بر اساس Requirement جدید
-- `docs/PHASE3_AUTH_DECISION_RECORD.md` — تصمیم‌های ثبت‌شده و Gateهای باز Authentication
-- `docs/PHASE3_AUTH_IMPLEMENTATION_PLAN.md` — Plan حداقلی و غیر اجرایی Phase 3
+- `docs/PHASE3_AUTH_DECISION_RECORD.md` — انتخاب نهایی Clerk، تصمیم‌ها و Gateهای عملیاتی Authentication
+- `docs/PHASE3_AUTH_IMPLEMENTATION_PLAN.md` — Plan و وضعیت اجرای Phase 3
 - `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` — بررسی قابلیت فعلی PWA و طرح Offline امن بدون دورزدن Auth
-- `docs/PHASE3_AUTH_PROVIDER_MATRIX.md` — مقایسه اولیه Clerk و Supabase برای OAuth، Worker و PWA
+- `docs/PHASE3_AUTH_PROVIDER_MATRIX.md` — مقایسه Clerk و Supabase برای OAuth، Worker و PWA
+- `docs/PHASE3_CLERK_SETUP.md` — تنظیمات Clerk، Secretها، Bootstrap و Flowهای Phase 3
+- `docs/PHASE3_AUTH_TEST_REPORT.md` — تست‌های واقعی Local، موارد NOT VERIFIED و Release Blockers
+
+## Authentication Configuration
+
+Provider نهایی Phase 3: **Clerk**. برای اجرای Frontend، `VITE_CLERK_PUBLISHABLE_KEY` و در صورت استفاده `VITE_CLERK_JWT_TEMPLATE` را در Environment قرار دهید. برای Worker، Secretهای Clerk و `ALLOWED_ORIGIN` را با Wrangler تنظیم کنید؛ نمونه در `.env.example` ثبت شده است.
+
+```bash
+npx wrangler secret put CLERK_JWT_KEY --config wrangler.toml
+npx wrangler secret put CLERK_JWT_ISSUER --config wrangler.toml
+npx wrangler secret put CLERK_AUTHORIZED_PARTIES --config wrangler.toml
+npx wrangler secret put BOOTSTRAP_ADMIN_PROVIDER_SUBJECT --config wrangler.toml
+```
 
 ## هشدار Production
 
-`wrangler.toml` عمداً شامل Placeholder برای `database_id` است. پیش از Deployment باید Database واقعی ساخته شود، مقدار واقعی ثبت شود و Migration روی Remote اعمال گردد.
+`wrangler.toml` هنوز شامل Placeholder برای `database_id` است. پیش از Deployment باید Database واقعی تنظیم شود، `ALLOWED_ORIGIN` دقیق تعیین گردد، Clerk OAuth/Session Template/MFA فعال شود و Migrationهای `0003` و `0004` روی Remote با Backup و Validation اعمال شوند.

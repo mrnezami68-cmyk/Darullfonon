@@ -4,7 +4,8 @@ compatibility_date = "2026-09-02"
 workers_dev = true
 
 [vars]
-ENVIRONMENT = "development"
+# Secure-by-default. There is no Demo authorization path in any environment.
+ENVIRONMENT = "production"
 
 [[d1_databases]]
 binding = "DB"

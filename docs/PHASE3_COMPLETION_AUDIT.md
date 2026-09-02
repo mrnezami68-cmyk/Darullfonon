@@ -61,7 +61,7 @@ Cloudflare D1
 | Gate | وضعیت کد/طراحی | اجرای واقعی | نتیجه و اقدام لازم |
 |---|---|---|---|
 | Clerk Instance و OAuth Connection | Adapter و Hosted Sign-in در Repository آماده است | `NOT VERIFIED`؛ Instance و Connection واقعی در دسترس نیست | Owner باید Instance محیط‌های Dev/Staging/Prod، Connection، Redirect و Origin دقیق را بسازد و Browser تست کند |
-| JWT Template و Secretهای واقعی | Worker اعتبارسنجی `RS256`، `iss`، `exp`، `nbf`، `jti`، `azp` و `aud` اختیاری دارد | `NOT VERIFIED`؛ Secret واقعی و Token واقعی Clerk موجود نیست | Template باید Claimهای لازم و Lifetime کوتاه داشته باشد؛ Secretها فقط با Wrangler/Secret Store تنظیم شوند |
+| JWT Template و Secretهای واقعی | Worker اعتبارسنجی `RS256`، `iss`، `iat`، `exp`، `nbf`، `jti`، `azp` و `aud` اختیاری دارد | `NOT VERIFIED`؛ Secret واقعی و Token واقعی Clerk موجود نیست | Template باید Claimهای لازم و Lifetime کوتاه داشته باشد؛ Secretها فقط با Wrangler/Secret Store تنظیم شوند |
 | Invite و MFA برای Staff | Policy و Master Provisioning سمت Backend وجود دارد | `NOT VERIFIED`؛ Dashboard Clerk و دعوت واقعی تست نشده | Staff Invite-only و MFA اجباری در Clerk فعال و با Browser تست شود؛ Backend نباید Role را از Client بگیرد |
 | Remote D1 و Migrationهای Remote | Migrationها Additive و Local موفق هستند؛ `database_id` هنوز Placeholder است | `BLOCKED`؛ Cloudflare Auth در دسترس نیست | ساخت D1 واقعی، Backup/Snapshot، Apply `0003` و `0004`، Integrity و Schema Parity؛ Migration مخرب اجرا نشود |
 | Production CORS | Allow-list دقیق؛ نبود Allow-list به `null` می‌انجامد؛ Origin evil در Local رد شد | Origin واقعی Production `NOT VERIFIED` | `ALLOWED_ORIGIN` دقیق Pages و `CLERK_AUTHORIZED_PARTIES` تنظیم و Preflight/Authenticated Request تست شود |
@@ -101,11 +101,14 @@ git diff --check         PASS
 | Public Draft-ancestor boundary | Chapter/Lesson/Quiz زیر Course غیر Published → `404`; fixture بعد از تست پاک شد |
 | Local migrations | `0003` و `0004` قبلاً Apply شده؛ اجرای مجدد `No migrations to apply` |
 
-### Functional Smoke قبلی با Fixture محلی
+### Functional Smoke با Fixture محلی
 
-این موارد در `docs/PHASE3_AUTH_TEST_REPORT.md` با JWT امضاشده RSA و Local D1 ثبت شده‌اند:
+این موارد در `docs/PHASE3_AUTH_TEST_REPORT.md` و اجرای نهایی با JWT امضاشده RSA و Local D1 ثبت شده‌اند:
 
 ```text
+Valid JWT with iat/nbf/azp: PASS
+Future iat JWT: 401 PASS
+Forged signature: 401 PASS
 Bootstrap Admin: PASS
 Student onboarding: PASS
 Teacher pending application: PASS
@@ -129,7 +132,7 @@ Teacher application rate limit: 429 PASS
 2. محدود کردن ثبت Progress به Lessonهای `Published`؛ کاربر نمی‌تواند برای Draft/Unpublished محتوا Progress بسازد.
 3. محدود کردن Chapter، Lesson و Quiz عمومی به Course منتشرشده؛ Draft/Unpublished ancestor از مسیرهای Public و Cache نشت نمی‌کند.
 4. جلوگیری از ثبت Audit کاذب در بررسی Teacher یا Suspend کردن User نامعتبر/قبلاً Suspend شده؛ ابتدا Transition موفق می‌شود و سپس Audit ثبت می‌گردد.
-5. الزام `nbf` و `azp` معتبر در JWT؛ Token ناقص یا بدون Authorized Party مجاز رد می‌شود.
+5. الزام `iat`، `nbf` و `azp` معتبر در JWT؛ Token ناقص، صادرشده در آینده یا بدون Authorized Party مجاز رد می‌شود.
 6. Cache کردن کلید عمومی واردشده در طول عمر isolate با تشخیص خودکار تغییر PEM؛ هزینه Import در هر درخواست کاهش می‌یابد و Rotation با مقدار جدید کار می‌کند.
 7. همگام‌سازی محدود Email/Name و `email_verified` از Claim معتبر به D1، بدون تغییر Role/Status؛ Profile بعد از تغییرات معتبر Provider عقب نمی‌ماند.
 8. اصلاح اسناد متناقض تاریخی و ثبت این Completion Audit؛ Snapshotهای Phase 0/1 دست‌نخورده به‌عنوان تاریخچه باقی مانده‌اند.

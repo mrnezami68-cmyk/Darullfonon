@@ -106,7 +106,7 @@ Online + valid session → Worker re-authorizes → sync
 ### Worker
 
 - JWT/Session با الگوریتم allow-list اعتبارسنجی شود.
-- `issuer`، `exp`، `nbf` و `azp` بررسی شوند؛ `audience` در صورت استفاده از آن enforce شود.
+- `issuer`، `iat`، `exp`، `nbf` و `azp` بررسی شوند؛ `audience` در صورت استفاده از آن enforce شود.
 - کلیدها از JWKS/Provider رسمی و با Cache محدود دریافت شوند.
 - Token جعلی، منقضی و Origin نادرست رد شود.
 - Worker با SDK کامل Provider به Bundle/runtime وابسته نشود مگر دلیل روشن وجود داشته باشد.

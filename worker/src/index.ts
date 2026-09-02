@@ -17,6 +17,7 @@ type ClerkClaims = {
   sub?: unknown
   iss?: unknown
   exp?: unknown
+  iat?: unknown
   nbf?: unknown
   jti?: unknown
   azp?: unknown
@@ -251,13 +252,14 @@ async function verifyClerkToken(request: Request, env: Env): Promise<AuthIdentit
     const subject = claimString(claims.sub)
     const issuer = claimString(claims.iss)
     const expiresAt = typeof claims.exp === 'number' ? claims.exp : 0
+    const issuedAt = typeof claims.iat === 'number' ? claims.iat : 0
     const notBefore = typeof claims.nbf === 'number' ? claims.nbf : 0
     const jti = claimString(claims.jti)
     const authorizedParties = (env.CLERK_AUTHORIZED_PARTIES || env.ALLOWED_ORIGIN || '').split(',').map((value) => value.trim()).filter(Boolean)
     const azp = claimString(claims.azp)
     const expectedAudience = (env.CLERK_JWT_AUDIENCE || '').trim()
     const tokenAudiences = Array.isArray(claims.aud) ? claims.aud.map(claimString).filter((value): value is string => Boolean(value)) : [claimString(claims.aud)].filter((value): value is string => Boolean(value))
-    if (!signatureValid || !subject || !issuer || issuer !== env.CLERK_JWT_ISSUER || typeof claims.exp !== 'number' || expiresAt <= now || typeof claims.nbf !== 'number' || notBefore > now || !jti) throw new Error('invalid claims')
+    if (!signatureValid || !subject || !issuer || issuer !== env.CLERK_JWT_ISSUER || typeof claims.exp !== 'number' || expiresAt <= now || typeof claims.iat !== 'number' || issuedAt > now + 60 || typeof claims.nbf !== 'number' || notBefore > now || !jti) throw new Error('invalid claims')
     if (expectedAudience && !tokenAudiences.includes(expectedAudience)) throw new Error('invalid audience')
     if (!azp || !authorizedParties.length || !authorizedParties.includes(azp)) throw new Error('invalid authorized party')
     return {

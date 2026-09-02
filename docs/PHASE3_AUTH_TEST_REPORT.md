@@ -25,7 +25,10 @@
 
 | Scenario | Result |
 |---|---|
-| Valid RS256 Clerk-like token + issuer/JTI/azp | PASS |
+| Valid RS256 Clerk-like token + issuer/iat/nbf/JTI/azp | `GET /auth/me 200 PASS` |
+| Future `iat` token | `401 PASS` |
+| Forged signature | `401 PASS` |
+| Student onboarding with valid JWT | `201 PASS` |
 | Bootstrap Admin Subject | PASS |
 | New OAuth identity returns `onboarded=false` | PASS |
 | Student onboarding creates `role=student,status=active` | PASS |

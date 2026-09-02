@@ -35,7 +35,7 @@ Content-Type: application/json
 Authorization: Bearer <short-lived Clerk session token>
 ```
 
-Token را Application در `localStorage` ذخیره نمی‌کند. Worker `RS256`، issuer، expiration، not-before، authorized party و JTI را بررسی می‌کند.
+Token را Application در `localStorage` ذخیره نمی‌کند. Worker `RS256`، issuer، `iat`، expiration، not-before، authorized party و JTI را بررسی می‌کند.
 
 ---
 

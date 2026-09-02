@@ -9,7 +9,7 @@
 - Frontend فقط Clerk Publishable Key را می‌بیند؛ Secret در Frontend قرار نمی‌گیرد.
 - Application Token را در `localStorage` یا `sessionStorage` ذخیره نمی‌کند؛ Token کوتاه‌عمر Clerk فقط برای درخواست محافظت‌شده در حافظه استفاده می‌شود.
 - Worker فقط `RS256` را می‌پذیرد و Public Key Clerk را از Secret می‌گیرد.
-- Worker `issuer`، امضا، `exp`، `nbf`، `jti` و `azp` را بررسی می‌کند؛ `aud` در صورت تنظیم Secret مربوطه enforce می‌شود.
+- Worker `issuer`، امضا، `iat`، `exp`، `nbf`، `jti` و `azp` را بررسی می‌کند؛ `aud` در صورت تنظیم Secret مربوطه enforce می‌شود.
 - Role و Status از D1 User Record خوانده می‌شوند؛ از Request، Suffix یا Demo Header پذیرفته نمی‌شوند.
 - `X-Demo-Role` و `X-Demo-User` دیگر مسیر Authorization نیستند.
 - `@sd` و `@mt` فقط Login Identifier هستند و Unique Constraint دارند.

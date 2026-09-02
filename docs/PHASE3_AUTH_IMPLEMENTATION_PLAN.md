@@ -69,7 +69,7 @@ BOOTSTRAP_ADMIN_PROVIDER_SUBJECT
 ### Exit Criteria
 
 - Clerk configuration واقعی ثبت شده باشد.
-- Worker issuer، امضا، `exp`، `nbf`، `jti` و `azp` را verify کند؛ `aud` در صورت تنظیم enforce شود.
+- Worker issuer، امضا، `iat`، `exp`، `nbf`، `jti` و `azp` را verify کند؛ `aud` در صورت تنظیم enforce شود.
 - Session token در `localStorage` توسط Application ذخیره نشود.
 - Logout، JTI revocation و Clerk `signOut()` قابل تست باشد.
 

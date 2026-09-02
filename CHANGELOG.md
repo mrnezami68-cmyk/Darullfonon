@@ -10,6 +10,8 @@
 - Added Phase 3 completion audit with operational gates, strengths/weaknesses, role review and sequential remediation plan.
 - Hardened Bearer CORS usage, published-content ancestry checks, Progress validation and transition audit integrity.
 - Added a secret-safe `phase3:preflight -- --production` release-gate command.
+- Required a bounded `iat` claim in Worker JWT validation and recorded valid, future-iat, forged-signature, onboarding and revocation fixture results.
+- Hardened production preflight URL, public-key and bootstrap-subject shape checks without printing values.
 
 ## Unreleased — 2026-09-02
 

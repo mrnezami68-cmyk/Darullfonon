@@ -7,6 +7,20 @@ function required(name) {
   if (!process.env[name]?.trim()) failures.push(`${name} is missing`)
 }
 
+function httpsUrl(name) {
+  const value = process.env[name]?.trim() || ''
+  if (!value) {
+    failures.push(`${name} is missing`)
+    return
+  }
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) failures.push(`${name} must be an HTTPS URL`)
+  } catch {
+    failures.push(`${name} contains an invalid URL`)
+  }
+}
+
 function origins(name, requireHttps = false) {
   const values = (process.env[name] || '').split(',').map((value) => value.trim()).filter(Boolean)
   if (!values.length) {
@@ -35,8 +49,10 @@ const publishableKey = process.env.VITE_CLERK_PUBLISHABLE_KEY || ''
 if (!publishableKey.startsWith('pk_live_')) failures.push('VITE_CLERK_PUBLISHABLE_KEY must be a live Clerk publishable key')
 required('VITE_CLERK_JWT_TEMPLATE')
 required('CLERK_JWT_KEY')
-required('CLERK_JWT_ISSUER')
+if (process.env.CLERK_JWT_KEY && !/-----BEGIN PUBLIC KEY-----[\s\S]+-----END PUBLIC KEY-----/.test(process.env.CLERK_JWT_KEY)) failures.push('CLERK_JWT_KEY must contain a public SPKI PEM')
+httpsUrl('CLERK_JWT_ISSUER')
 required('BOOTSTRAP_ADMIN_PROVIDER_SUBJECT')
+if (process.env.BOOTSTRAP_ADMIN_PROVIDER_SUBJECT && !/^[a-zA-Z0-9_:-]{8,160}$/.test(process.env.BOOTSTRAP_ADMIN_PROVIDER_SUBJECT)) failures.push('BOOTSTRAP_ADMIN_PROVIDER_SUBJECT has invalid shape')
 origins('ALLOWED_ORIGIN', true)
 origins('CLERK_AUTHORIZED_PARTIES', true)
 

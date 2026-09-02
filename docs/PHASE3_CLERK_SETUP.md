@@ -27,7 +27,7 @@ Frontend برای درخواست به Worker از `getToken({ template: VITE_CLE
 }
 ```
 
-Claimهای `iss`، `sub`، `exp`، `nbf`، `jti` و `azp` به‌صورت خودکار توسط Clerk ایجاد می‌شوند. Worker فقط Token با `RS256`، Issuer درست، زمان معتبر، JTI و Authorized Party مجاز را می‌پذیرد.
+Claimهای `iss`، `sub`، `iat`، `exp`، `nbf`، `jti` و `azp` به‌صورت خودکار توسط Clerk ایجاد می‌شوند. Worker فقط Token با `RS256`، Issuer درست، زمان معتبر، JTI و Authorized Party مجاز را می‌پذیرد.
 
 اگر Template از `aud` استفاده می‌کند، مقدار دقیق آن را در `CLERK_JWT_AUDIENCE` تنظیم کنید. در غیر این صورت این Secret لازم نیست.
 

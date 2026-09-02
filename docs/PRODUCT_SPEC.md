@@ -2,8 +2,19 @@
 
 **نسخه:** 0.1  
 **فاز:** Phase 0 — Discovery  
-**وضعیت:** پیشنهادی برای تأیید پیش از Architecture  
+**وضعیت تاریخی سند پایه:** Discovery baseline؛ برای وضعیت فعلی و تصمیم‌های Phase 3 به Addendum انتهای سند مراجعه شود.
 **Complexity Target:** L1 — Simple
+
+---
+
+## Current Phase 3 Addendum — ۲ سپتامبر ۲۰۲۶
+
+- هویت و Session محصول در Phase 3 با Clerk OAuth/OIDC پیاده‌سازی شده است.
+- Student پس از `email_verified=true` با وضعیت `active` ساخته می‌شود.
+- Teacher ابتدا `pending` است و فقط Admin می‌تواند آن را فعال یا رد کند.
+- Master و Admin مسیر عمومی ندارند و از Invite/Provisioning کنترل‌شده استفاده می‌کنند.
+- Offline فقط برای Published Public Content است؛ Offline Auth، Progress Queue، Quiz Submit و Staff/Admin Mutation وجود ندارد.
+- این Addendum تصمیم‌های Auth را به‌روزرسانی می‌کند؛ Scope محصول و محدودیت‌های MVP سند پایه همچنان مرجع UX هستند.
 
 ---
 
@@ -136,9 +147,11 @@ Unlock فصل بعد
 
 ---
 
-## 7. Role و Authentication
+## 7. Role و Authentication در Snapshot تاریخی Discovery
 
-در MVP فعلی:
+> این بخش تاریخی است و تصمیم فعلی در Current Phase 3 Addendum ثبت شده است.
+
+در MVP پایه:
 
 - Authentication واقعی وجود ندارد.
 - کاربر در حالت Demo Role قرار دارد.

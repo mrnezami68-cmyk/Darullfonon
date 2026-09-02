@@ -33,7 +33,6 @@ async function request(path, options = {}) {
   const tokenHeaders = pathRequiresAuth(path, options.method || 'GET') ? await authHeaders() : {}
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
     headers: {
       Accept: 'application/json',
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),

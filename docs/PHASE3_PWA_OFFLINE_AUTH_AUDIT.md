@@ -1,103 +1,38 @@
-# PWA و Offline Access — Initial Audit
+# Phase 3 — PWA Offline و مرز Authentication
 
-**تاریخ:** ۲ سپتامبر ۲۰۲۶  
-**وضعیت:** AUDIT COMPLETE — OFFLINE READING IMPLEMENTED; Browser E2E NOT VERIFIED
+**تاریخ:** ۲ سپتامبر ۲۰۲۶
+**وضعیت:** Implementation محلی انجام شده؛ Browser Offline E2E و Production Verification باقی است
 **Complexity Target:** `L1 — Simple`
 
-این سند در پاسخ به نیاز بررسی قابلیت‌های فعلی PWA و امکان استفاده آفلاین ثبت شده است. بررسی فقط Inspect و Plan است؛ Service Worker، API یا Authentication تغییر نکرده‌اند.
+این سند نتیجه ممیزی فعلی Service Worker، Cache و مرز Auth است. نسخه‌های قبلی این فایل Snapshot پیش از Implementation بودند؛ این نسخه وضعیت جاری Repository را ثبت می‌کند.
 
 ---
 
-## 1. قابلیت فعلی PWA
-
-فایل‌های بررسی‌شده:
-
-- `index.html`
-- `public/manifest.webmanifest`
-- `public/sw.js`
-- `src/main.jsx`
-- `src/api.js`
-- `package.json`
-- `vite.config.js`
-
-نتیجه:
-
-- Web App Manifest وجود دارد.
-- اپ در `src/main.jsx`، `public/sw.js` را هنگام Load ثبت می‌کند.
-- Service Worker فقط `install`، `activate` و `clients.claim()` دارد.
-- هیچ `fetch` handler وجود ندارد.
-- هیچ Cache Storage یا precache برای Shell وجود ندارد.
-- خود فایل Service Worker صراحتاً می‌گوید Offline Content در MVP Cache نمی‌شود.
-- هیچ IndexedDB، Offline Queue یا Sync وجود ندارد.
-- API Client همه داده‌ها را از مسیر شبکه `/api` می‌گیرد.
-- `localStorage` فعلی فقط Theme و Demo Role را نگه می‌دارد؛ این Session یا Offline Authorization نیست.
-
-### نتیجه دقیق
+## 1. تصمیم و مرز نهایی
 
 ```text
-PWA Installability: PRESENT
-Offline App Shell: IMPLEMENTED IN SERVICE WORKER
-Offline Course Content: IMPLEMENTED FOR ALLOW-LISTED PUBLISHED GETs
-Offline Progress Sync: NOT ALLOWED IN MVP
-Offline Quiz Submission: NOT ALLOWED IN MVP
-Offline Authentication: NOT ALLOWED
+Offline Reading: فقط محتوای Published عمومی که قبلاً دریافت شده است
+Offline Authentication: ممنوع
+Offline Progress Queue: ممنوع در MVP
+Offline Quiz Submit: ممنوع
+Offline Teacher/Admin/Master Mutation: ممنوع
+Offline Authorization: وجود ندارد
 ```
 
-در نسخه فعلی، Service Worker برای Shell و محتوای عمومی allow-list شده Cache دارد؛ اجرای Browser E2E و مشاهده Offline روی Device واقعی هنوز باید Verify شود.
+Cache دستگاه Proof of Role، Proof of Session یا مجوز Mutation نیست.
 
 ---
 
-## 2. Offline و Authentication چه تفاوتی دارند؟
-
-آفلاین‌بودن نباید به معنای دورزدن Authentication/Authorization باشد:
-
-- OAuth و اولین Sign-in به شبکه نیاز دارند.
-- اعتبار Session، Role و Status باید در Backend تأیید شود.
-- اگر شبکه قطع است، Worker نمی‌تواند برای درخواست جدید Authorization زنده انجام دهد.
-- Cache سمت دستگاه Proof of Role یا Proof of Admin نیست.
-- Teacher، Master و Admin نباید هیچ عملیات حساس را آفلاین انجام دهند.
-- Offline mode باید یک حالت محدود برای محتوای از قبل دریافت‌شده باشد، نه یک Identity System دوم.
-
-### مدل امن پیشنهادی
-
-```text
-Online:
-  OAuth Login → Session Cookie → Worker Authorization → D1
-
-Offline:
-  Cached public/prefetched learning content → read-only
-  No Progress Queue in MVP
-  No Admin/Staff mutation
-```
-
----
-
-## 3. ساده‌ترین Offline Scope در L1
-
-### Scope تأییدشده برای Plan
-
-1. **Offline Reading:** Student پس از یک بار اتصال آنلاین، محتوای Published انتخاب‌شده را برای مطالعه آفلاین ببیند.
-2. **No Offline Progress Queue در MVP:** Progress فقط Online ثبت شود تا نیاز به مالکیت Queue و Conflict Policy اضافه نشود.
-3. **No Offline Quiz:** ثبت نهایی و Score فقط روی Server و در حالت Online انجام شود.
-4. **No Offline Admin/Staff:** پنل Master، Admin و Teacher Application آفلاین در دسترس عملیاتی نباشد.
-5. **No Token Storage:** Token، Refresh Token، Cookie Secret و Role در `localStorage`، Cache Storage یا IndexedDB ذخیره نشود.
-
-### چرا این Scope کم‌ریسک است؟
-
-- تجربه اصلی مطالعه Offline می‌شود.
-- Auth و Authorization همچنان فقط Backend مرجع دارند.
-- Cache داده حساس User/Staff ایجاد نمی‌شود.
-- نیاز به Database یا Service جدید ندارد.
-- Progress در MVP اصلاً Queue نمی‌شود و فقط Online ثبت می‌شود.
-
----
-
-## 4. طرح فنی حداقلی اجراشده برای Offline Reading
+## 2. Implementation فعلی
 
 ### Service Worker
 
-- Precache کردن Assetهای Hash‌شده Shell با نسخه مشخص.
-- Runtime cache فقط برای allow-list محتوای عمومی و Published:
+`public/sw.js` این موارد را انجام می‌دهد:
+
+- Shell استاتیک (`/`, `/index.html`, Manifest و Icon) را در Cache نسخه‌دار نگه می‌دارد.
+- فقط GETهای همان Origin را بررسی می‌کند.
+- Request دارای `Authorization` را از Cache خارج می‌کند.
+- فقط این الگوهای Public API را Cache می‌کند:
 
 ```text
 GET /api/v1/courses
@@ -105,75 +40,80 @@ GET /api/v1/courses/:slug
 GET /api/v1/chapters/:id
 GET /api/v1/lessons/:slug
 GET /api/v1/glossary
+GET /api/v1/glossary/:slug
 GET /api/v1/library
+GET /api/v1/library/:slug
 ```
 
-- عدم Cache برای:
+- Requestهای Auth، Progress، Quiz Submit، Admin، Teacher و Master را Cache نمی‌کند.
+- روی Offline بودن، فقط Cache قبلی همان Public Content را برمی‌گرداند؛ در نبود Cache پاسخ `503 OFFLINE` می‌دهد.
+- Cache نسخه قدیمی را هنگام `activate` حذف می‌کند.
 
-```text
-/auth/*
-/api/v1/auth/*
-/api/v1/progress
-/api/v1/quizzes/*/submit
-/api/v1/admin/*
-/api/v1/teacher/*
-/api/v1/master/*
-/api/v1/auth/me
-```
+### API Client
 
-- cache key نسخه‌دار و invalidation برای Content update.
-- عدم استفاده از `Cache-Control` به‌عنوان جایگزین Authorization.
-
-### Client Data
-
-- در Scope فعلی، هیچ Offline Progress Queue در MVP ایجاد نمی‌شود.
-- Progress فقط با اتصال شبکه و Session معتبر به Worker ارسال می‌شود.
-- در صورت اضافه‌شدن Queue در آینده، باید در IndexedDB (نه `localStorage`) و با `client_event_id` یکتا، قفل مالکیت User و Sync idempotent طراحی شود.
+- API URL از مسیر نسبی `/api` استفاده می‌کند.
+- Token فقط از Clerk SDK گرفته و در حافظه برای ساخت `Authorization: Bearer` استفاده می‌شود.
+- `credentials: include` استفاده نمی‌شود؛ چون Session محصول Bearer-based است و Cookie API انتخاب نشده است.
+- پاسخ‌های Auth/User/Admin/Mutation با `Cache-Control: no-store` در Worker برگردانده می‌شوند.
 
 ### Backend
 
-- هر Progress Request آنلاین دوباره Validation و Authorization شود.
-- `user_id` فقط از Session معتبر Worker تعیین شود.
-- `status` و `role` از Request عمومی پذیرفته نشوند.
+- Progress و Quiz مالکیت را از User معتبر D1 می‌گیرند.
+- Progress فقط برای Lesson منتشرشده پذیرفته می‌شود.
+- هیچ عملیات حساس از Cache یا Offline Request مجوز نمی‌گیرد.
 
 ---
 
-## 5. امنیت Cache و Device
+## 3. نقاط قوت
 
-Cache روی دستگاه ممکن است توسط هر فردی که به Device/Browser Profile دسترسی دارد خوانده شود. بنابراین:
-
-- فقط محتوای عمومی یا محتوایی که Product صراحتاً Offline آن را مجاز می‌داند Cache شود.
-- Progress شخصی، Profile، Email، Teacher Application، Admin List و Audit Log Cache نشوند.
-- Offline Content نباید شامل داده‌ای باشد که بعداً با Logout باید حذف شود، مگر Cache Ownership و Clear Policy مشخص شود.
-- Clear Site Data/Logout باید رفتار Cache را روشن کند.
-- رمزگذاری Client-side بدون Key Management واقعی امنیت کاذب ایجاد می‌کند و برای L1 پیشنهاد نمی‌شود.
+- Allow-list به‌جای Cache عمومی API استفاده شده است.
+- Requestهای دارای Authorization به‌صورت صریح از Cache خارج هستند.
+- هیچ Token، Profile، Progress، Teacher Application یا Audit Log در Cache ذخیره نمی‌شود.
+- Offline یک حالت محدود برای Reading است و Identity System دوم ایجاد نمی‌کند.
+- Public Content در Backend نیز فقط در وضعیت `Published` ارائه می‌شود.
+- Cache نسخه‌دار است و تغییر نسخه باعث پاک‌شدن Cache قدیمی می‌شود.
 
 ---
 
-## 6. Acceptance Criteria پیشنهادی Offline Reading
+## 4. محدودیت‌های باقی‌مانده
 
-این موارد Scope تأییدشده را به Test Case تبدیل می‌کنند:
+این موارد در این محیط قابل اجرای واقعی نبودند و نباید `PASS` اعلام شوند:
+
+- Browser Offline E2E روی Chrome/Chromium واقعی.
+- تست Device/Browser Profile جدا برای بررسی Cache و Logout.
+- تست قطع شبکه در میانه دریافت و بازخوانی کامل Public Content.
+- تست Cache invalidation پس از تغییر نسخه و Deployment واقعی.
+- بررسی رفتار Service Worker روی Origin نهایی Pages و مسیر واقعی `/api`.
+
+همچنین Cache عمومی روی دستگاه توسط هر فرد دارای دسترسی به Browser Profile قابل مشاهده است؛ به همین دلیل محتوای خصوصی یا Role-sensitive نباید به Allow-list اضافه شود.
+
+---
+
+## 5. Acceptance Testهای لازم پیش از Release
 
 ```text
-1. پس از یک بازدید آنلاین، Shell و محتوای Published انتخاب‌شده آفلاین باز شوند.
-2. Offline UI صریحاً «حالت مطالعه آفلاین» را نشان دهد، نه «Session معتبر جدید».
-3. هیچ Auth Token یا Staff/User Response حساس در Cache Storage ذخیره نشود.
-4. Progress و Quiz در Offline قابل ثبت نهایی نباشند.
-5. Admin/Teacher/Master mutation در Offline قابل انجام نباشد.
-6. Offline content بعد از تغییر نسخه، invalidation داشته باشد.
-7. Service Worker فقط routeهای allow-list شده را Cache کند.
+[ ] Online: دریافت Public Published Content و مشاهده آن در Cache
+[ ] Offline: بازشدن فقط همان Content دریافت‌شده
+[ ] Offline: Content دریافت‌نشده → 503/پیام واضح
+[ ] Offline: Auth/Session جدید ایجاد نشود
+[ ] Offline: Progress و Quiz Submit ثبت نشود
+[ ] Offline: Teacher/Admin/Master mutation انجام نشود
+[ ] Authorization request در Cache ذخیره نشود
+[ ] تغییر نسخه Service Worker Cache قبلی را invalidate کند
+[ ] Origin نهایی Pages و مسیر /api واقعاً کار کند
+[ ] Logout باعث باقی‌ماندن داده حساس در Cache نشود
+```
+
+تا اجرای این موارد با Browser واقعی:
+
+```text
+PWA Offline Browser E2E: NOT VERIFIED
+PWA Design Boundary: PASS BY INSPECTION
+Production PWA Release: BLOCKED
 ```
 
 ---
 
-## 7. تصمیم ثبت‌شده
+## 6. تصمیم برای ادامه Phase 3
 
-```text
-Offline Reading: CONFIRMED FOR PLAN
-Offline Progress Queue: NO FOR MVP
-Offline Quiz: NO
-Offline Auth: NO
-Offline Staff/Admin: NO
-```
-
-این Scope برای حفظ L1 انتخاب شده است. اگر بعداً Progress Queue یا Offline Quiz لازم شود، باید Change Request و Security/Data Integrity Plan جدا داشته باشد.
+در Phase 3 فعلی هیچ Queue، Sync، IndexedDB یا Encryption سمت Client اضافه نمی‌شود. اگر Offline Progress یا Quiz در آینده Requirement واقعی شد، باید Change Request جدا با Idempotency، Conflict Policy، مالکیت User و Threat Model تصویب شود.

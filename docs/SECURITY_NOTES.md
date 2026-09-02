@@ -21,7 +21,8 @@
 - Approve/Reject Teacher با شرط وضعیت `pending` و D1 Batch انجام می‌شود.
 - Approve/Reject/Suspend در `audit_logs` ثبت می‌شوند.
 - Logout، JTI توکن جاری را تا زمان Expiration در `auth_revoked_tokens` revoke می‌کند و سپس Clerk `signOut()` اجرا می‌شود.
-- Progress و Quiz Attempt مالکیت را فقط از User معتبر Worker می‌گیرند.
+- Progress و Quiz Attempt مالکیت را فقط از User معتبر Worker می‌گیرند؛ Progress برای Lesson غیر Published پذیرفته نمی‌شود.
+- مسیرهای Public برای Chapter، Lesson و Quiz فقط وقتی داده می‌دهند که Course والد Published باشد.
 - Rate Limit پایه برای Student Onboarding، Teacher Application و Admin Mutation با D1 Bucket فعال است.
 - بدون `ALLOWED_ORIGIN`، CORS به Origin دلخواه Echo نمی‌شود و مقدار `null` برمی‌گرداند.
 - Responseهای Auth/User/Admin/Mutation با `Cache-Control: no-store` ارسال می‌شوند.

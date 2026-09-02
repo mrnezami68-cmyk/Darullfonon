@@ -7,6 +7,8 @@
 
 این سند فقط تصمیم‌هایی را ثبت می‌کند که در همین Session به‌صورت واقعی انتخاب شدند. برای تصمیم‌های انتخاب‌نشده، نظر شخص یا Owner جعل نشده و وضعیت `PENDING INPUT` باقی مانده است.
 
+> **Current implementation addendum:** Clerk برای Implementation انتخاب و در Repository پیاده‌سازی شده است. Local functional/security smoke موفق است، اما Instance واقعی Clerk، Remote D1، CORS نهایی، WAF و Browser E2E هنوز به‌دلیل نبود Environment/Access قابل Verify نیستند. این Addendum بر Snapshotهای تاریخی زیر مقدم است.
+
 ---
 
 ## 1. تصمیم‌های ثبت‌شده
@@ -48,7 +50,7 @@ admin   = هویت، Approval و عملیات امنیتی
 
 ### تصمیم 2 — Student مسیر OAuth/OIDC دارد
 
-Student از مسیر عمومی OAuth/OIDC وارد می‌شود. انتخاب Provider مشخص هنوز انجام نشده است، اما Policyهای Email و Recovery ثبت شده‌اند:
+Student از مسیر عمومی OAuth/OIDC وارد می‌شود. Provider نهایی Clerk انتخاب و Adapter آن پیاده‌سازی شده است؛ Policyهای Email و Recovery این‌ها هستند:
 
 - فقط `email_verified = true` معتبر upstream پذیرفته شود.
 - اگر IdP ایمیل قابل اعتماد ندهد، User به‌صورت `active` ساخته نشود.
@@ -80,7 +82,7 @@ D1 profile mapping and webhook/sync needs
 Region, cost, vendor exit and operational ownership
 ```
 
-هیچ Providerی هنوز Approved نیست.
+Clerk برای Phase 3 Approved for Implementation است؛ Operational Approval و Production Release پس از تست واقعی هنوز Blocked است.
 
 ---
 
@@ -148,7 +150,7 @@ Verification ایمیلی داخلی اضافه نمی‌شود.
 
 ### 3.5 PWA Offline Scope
 
-تصمیم ثبت‌شده: فقط Offline Reading محتوای Published از قبل دریافت‌شده. Progress، Quiz و تمام عملیات Staff/Admin Online هستند. Audit فعلی نشان می‌دهد این قابلیت هنوز در کد Implement نشده است.
+تصمیم ثبت‌شده: فقط Offline Reading محتوای Published از قبل دریافت‌شده. Progress، Quiz و تمام عملیات Staff/Admin Online هستند. این مرز در `public/sw.js` پیاده‌سازی شده و Browser E2E آن هنوز Verify نشده است.
 
 ```text
 Offline Reading: yes, limited and read-only

@@ -5,13 +5,13 @@
 ## وضعیت
 
 - Complexity: L1 — Simple
-- Phase: Phase 2 — API Integration (Approved with warnings for Local Development)
-- Next stage: Phase 3 — Production Security / Authentication (not started)
-- Frontend: React + Vite
-- API: Cloudflare Worker
-- Database: Cloudflare D1
-- Authentication: Demo Role در Development
-- Offline: فعلاً غیرفعال
+- Phase: Phase 3 — Authentication & Authorization (implemented locally; production verification blocked)
+- Next stage: Phase 4 only after the Phase 3 release gate is closed
+- Frontend: React + Vite + Clerk Provider
+- API: Cloudflare Worker با JWT verification و Backend Authorization
+- Database: Cloudflare D1 با User/Workflow/Audit/Rate-limit tables
+- Authentication: Clerk OAuth/OIDC؛ Demo Role در Production وجود ندارد
+- Offline: فقط Published public reading؛ بدون Offline Auth یا Mutation
 
 ## اجرا
 
@@ -35,10 +35,10 @@ Health check:
 curl http://127.0.0.1:8787/api/health
 ```
 
-برای Endpointهای Master در Development، Header زیر لازم است:
+برای Endpointهای محافظت‌شده، Frontend با Session Token کوتاه‌عمر Clerk هدر زیر را ارسال می‌کند. Token فقط در حافظه SDK استفاده می‌شود و نباید دستی در Repository یا Storage ذخیره شود:
 
 ```text
-X-Demo-Role: master
+Authorization: Bearer <short-lived Clerk session token>
 ```
 
 ## تست و Build

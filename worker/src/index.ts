@@ -557,11 +557,11 @@ async function reviewTeacherApplication(request: Request, env: Env, id: string, 
     `UPDATE teacher_applications SET status = ?, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?, rejection_reason = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ? AND status = 'pending'`,
   ).bind(nextStatus, auth.user.id, rejectionReason || null, id)
-  const audit = env.DB.prepare(
-    `INSERT INTO audit_logs (id, actor_user_id, action, target_type, target_id, metadata_json) VALUES (?, ?, ?, 'teacher_application', ?, ?)`,
-  ).bind(crypto.randomUUID(), auth.user.id, decision === 'approve' ? 'teacher.approve' : 'teacher.reject', id, JSON.stringify({ userId: application.user_id }))
-  const results = await env.DB.batch([updateUser, updateApplication, audit])
+  const results = await env.DB.batch([updateUser, updateApplication])
   if (Number(results[0]?.meta?.changes || 0) !== 1 || Number(results[1]?.meta?.changes || 0) !== 1) return error(request, env, 'درخواست هم‌زمان تغییر کرده است.', 409, 'INVALID_STATUS_TRANSITION')
+  await env.DB.prepare(
+    `INSERT INTO audit_logs (id, actor_user_id, action, target_type, target_id, metadata_json) VALUES (?, ?, ?, 'teacher_application', ?, ?)`,
+  ).bind(crypto.randomUUID(), auth.user.id, decision === 'approve' ? 'teacher.approve' : 'teacher.reject', id, JSON.stringify({ userId: application.user_id })).run()
   return json(request, env, { data: { applicationId: id, status: nextStatus }, message: decision === 'approve' ? 'درخواست Teacher تأیید شد.' : 'درخواست Teacher رد شد.' })
 }
 
@@ -574,9 +574,9 @@ async function suspendUser(request: Request, env: Env, id: string): Promise<Resp
   const result = await env.DB.batch([
     env.DB.prepare(`UPDATE users SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status != 'suspended'`).bind(id),
     env.DB.prepare(`UPDATE teacher_applications SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'active'`).bind(id),
-    env.DB.prepare(`INSERT INTO audit_logs (id, actor_user_id, action, target_type, target_id, metadata_json) VALUES (?, ?, 'user.suspend', 'user', ?, '{}')`).bind(crypto.randomUUID(), auth.user.id, id),
   ])
   if (Number(result[0]?.meta?.changes || 0) !== 1) return error(request, env, 'کاربر موردنظر پیدا نشد یا قبلاً Suspend است.', 404, 'USER_NOT_FOUND')
+  await env.DB.prepare(`INSERT INTO audit_logs (id, actor_user_id, action, target_type, target_id, metadata_json) VALUES (?, ?, 'user.suspend', 'user', ?, '{}')`).bind(crypto.randomUUID(), auth.user.id, id).run()
   return json(request, env, { data: { id, status: 'suspended' }, message: 'حساب Suspend شد.' })
 }
 
@@ -629,8 +629,9 @@ async function courseDetail(request: Request, env: Env, slug: string): Promise<R
 
 async function chapterDetail(request: Request, env: Env, chapterId: string): Promise<Response> {
   const chapter = await env.DB.prepare(
-    `SELECT id, course_id, level_id, title, summary, objective, estimated_minutes, sort_order
-     FROM chapters WHERE id = ? LIMIT 1`,
+    `SELECT ch.id, ch.course_id, ch.level_id, ch.title, ch.summary, ch.objective, ch.estimated_minutes, ch.sort_order
+     FROM chapters ch JOIN courses co ON co.id = ch.course_id
+     WHERE ch.id = ? AND co.status = 'Published' LIMIT 1`,
   ).bind(chapterId).first()
   if (!chapter) return error(request, env, 'فصل موردنظر پیدا نشد.', 404, 'CHAPTER_NOT_FOUND')
   const { results: lessons } = await env.DB.prepare(
@@ -645,7 +646,7 @@ async function lessonDetail(request: Request, env: Env, slug: string): Promise<R
     `SELECT l.id, l.slug, l.chapter_id, l.title, l.summary, l.body, l.reading_minutes, l.status, l.sort_order,
        c.title AS chapter_title, co.slug AS course_slug, co.title AS course_title
      FROM lessons l JOIN chapters c ON c.id = l.chapter_id JOIN courses co ON co.id = c.course_id
-     WHERE l.slug = ? AND l.status = 'Published' LIMIT 1`,
+     WHERE l.slug = ? AND l.status = 'Published' AND co.status = 'Published' LIMIT 1`,
   ).bind(slug).first()
   if (!lesson) return error(request, env, 'درس موردنظر پیدا نشد.', 404, 'LESSON_NOT_FOUND')
   return json(request, env, { data: lesson })
@@ -706,7 +707,9 @@ async function libraryDetail(request: Request, env: Env, slug: string): Promise<
 
 async function quizDetail(request: Request, env: Env, id: string): Promise<Response> {
   const quiz = await env.DB.prepare(
-    `SELECT id, chapter_id, title, passing_score, time_limit_minutes, attempts_allowed FROM quizzes WHERE id = ? AND status = 'Published' LIMIT 1`,
+    `SELECT q.id, q.chapter_id, q.title, q.passing_score, q.time_limit_minutes, q.attempts_allowed
+     FROM quizzes q JOIN chapters ch ON ch.id = q.chapter_id JOIN courses co ON co.id = ch.course_id
+     WHERE q.id = ? AND q.status = 'Published' AND co.status = 'Published' LIMIT 1`,
   ).bind(id).first()
   if (!quiz) return error(request, env, 'آزمون موردنظر پیدا نشد.', 404, 'QUIZ_NOT_FOUND')
   const { results } = await env.DB.prepare(
@@ -729,7 +732,9 @@ async function submitQuiz(request: Request, env: Env, id: string): Promise<Respo
   const answers = body.answers
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return error(request, env, 'پاسخ‌های آزمون معتبر نیستند.', 400, 'INVALID_ANSWERS')
   const quiz = await env.DB.prepare(
-    `SELECT id, passing_score FROM quizzes WHERE id = ? AND status = 'Published' LIMIT 1`,
+    `SELECT q.id, q.passing_score
+     FROM quizzes q JOIN chapters ch ON ch.id = q.chapter_id JOIN courses co ON co.id = ch.course_id
+     WHERE q.id = ? AND q.status = 'Published' AND co.status = 'Published' LIMIT 1`,
   ).bind(id).first<{ id: string; passing_score: number }>()
   if (!quiz) return error(request, env, 'آزمون موردنظر پیدا نشد.', 404, 'QUIZ_NOT_FOUND')
   const { results: questions } = await env.DB.prepare(
@@ -772,7 +777,7 @@ async function updateProgress(request: Request, env: Env): Promise<Response> {
   if (!isValidId(lessonId) || typeof status !== 'string' || !allowedStatuses.includes(status)) {
     return error(request, env, 'lessonId یا وضعیت پیشرفت معتبر نیست.', 400, 'INVALID_PROGRESS')
   }
-  const lesson = await env.DB.prepare('SELECT id FROM lessons WHERE id = ? LIMIT 1').bind(lessonId).first()
+  const lesson = await env.DB.prepare("SELECT id FROM lessons WHERE id = ? AND status = 'Published' LIMIT 1").bind(lessonId).first()
   if (!lesson) return error(request, env, 'درس موردنظر پیدا نشد.', 404, 'LESSON_NOT_FOUND')
   await env.DB.prepare(
     `INSERT INTO progress (user_id, lesson_id, status, completed_at, updated_at)

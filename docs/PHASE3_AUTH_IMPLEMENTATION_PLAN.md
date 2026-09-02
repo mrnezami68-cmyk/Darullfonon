@@ -69,7 +69,7 @@ BOOTSTRAP_ADMIN_PROVIDER_SUBJECT
 ### Exit Criteria
 
 - Clerk configuration واقعی ثبت شده باشد.
-- Worker issuer، signature، `exp`، `nbf` و `azp` را verify کند.
+- Worker issuer، امضا، `exp`، `nbf`، `jti` و `azp` را verify کند؛ `aud` در صورت تنظیم enforce شود.
 - Session token در `localStorage` توسط Application ذخیره نشود.
 - Logout، JTI revocation و Clerk `signOut()` قابل تست باشد.
 
@@ -190,12 +190,12 @@ Owner approval
    - signature/JWKS
    - `exp`
    - `nbf`
-   - expected origin/authorized party در صورت وجود
+   - authorized party (`azp`) مطابق Allow-list محیط
 3. Resolve Provider Subject به D1 User.
 4. برای User جدید فقط Role/Status Policy سمت سرور اعمال کند.
 5. Authorization را از User Record و Backend Policy استخراج کند.
 6. برای Progress و Quiz، `user_id` را فقط از Identity معتبر بگیرد.
-7. Demo Headerهای Role/User را از Production Authorization حذف کند.
+7. Demo Headerهای Role/User را از Production Authorization حذف کند؛ این مورد در Repository انجام شده است.
 8. خطاهای عمومی Auth را بدون User Enumeration برگرداند.
 9. CORS را با allow-list صریح و credentials policy تنظیم کند.
 10. Rate Limit برای Login/Callback/Teacher Application/Admin mutation طبق قابلیت Provider/Cloudflare اضافه کند.
@@ -224,7 +224,7 @@ Endpointهای Hosted OAuth/Callback بعد از Provider انتخاب می‌ش
 ### کارها
 
 - حذف `DemoRoleGate` از مسیر Production.
-- نگه‌داشتن Demo فقط با build flag صریح و غیرقابل فعال‌سازی در Production، یا حذف آن.
+- مسیر Demo Role/User حذف شده است و در Production قابل فعال‌سازی نیست.
 - درخواست `/auth/me` برای نمایش state.
 - استفاده از relative URL؛ هرگز `localhost` در Browser.
 - عدم ذخیره Token در `localStorage`.
@@ -353,7 +353,7 @@ Offline Auth: NO
 Offline Staff/Admin: NO
 ```
 
-Service Worker بعداً فقط allow-list محتوای عمومی را Cache می‌کند. هیچ Token، `/auth/me`، Progress، Teacher Application، Master یا Admin Response در Cache قرار نمی‌گیرد. Offline mode نباید Identity System دوم بسازد.
+Service Worker اکنون فقط allow-list محتوای عمومی را Cache می‌کند. هیچ Token، `/auth/me`، Progress، Teacher Application، Master یا Admin Response در Cache قرار نمی‌گیرد. Offline mode نباید Identity System دوم بسازد.
 
 ---
 

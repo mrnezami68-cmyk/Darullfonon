@@ -3,7 +3,28 @@
 **نسخه:** 0.1  
 **فاز:** Phase 1 — Simple Architecture  
 **Complexity Level:** L1 — Simple  
-**وضعیت:** پیشنهادی برای اجرای Vertical Slice و آماده‌سازی اتصال داده
+**وضعیت تاریخی سند پایه:** مبنای Phase 1؛ برای وضعیت فعلی به Addendum انتهای سند مراجعه شود.
+
+---
+
+## Current Phase 3 Addendum — ۲ سپتامبر ۲۰۲۶
+
+معماری L1 حفظ شده است و فقط مرز Authentication/Authorization به آن افزوده شده است:
+
+```text
+React/Vite PWA + Clerk SDK
+        ↓ Bearer short-lived session token
+Cloudflare Worker + Web Crypto JWT verification
+        ↓ D1 App User / Role / Status / Workflow
+Cloudflare D1
+```
+
+- Clerk تنها Identity Provider است؛ Password، Recovery داخلی و Identity System دوم اضافه نشده است.
+- Role و Status فقط از D1 و Policy سمت Worker تعیین می‌شوند.
+- Frontend Token را در `localStorage` یا `sessionStorage` ذخیره نمی‌کند.
+- Service Worker فقط Shell و Public Published Content را Cache می‌کند؛ Auth، Profile، Progress، Quiz Submit و Staff/Admin در Cache نیستند.
+- Migrationهای `0003_authentication.sql` و `0004_rate_limits.sql` Local اعمال شده‌اند؛ Remote به دلیل نبود Database ID و Cloudflare Access هنوز Blocked است.
+- Production هنوز مجاز نیست؛ جزئیات در `docs/PHASE3_COMPLETION_AUDIT.md` ثبت شده است.
 
 ---
 
@@ -98,9 +119,11 @@ Not applicable. No current requirement requires L2 or L3.
 
 ---
 
-## 4. Authentication فعلی
+## 4. Authentication در Snapshot تاریخی Phase 1
 
-در نسخه فعلی:
+> این بخش تاریخی است و با Current Phase 3 Addendum جایگزین شده است.
+
+در Snapshot Phase 1:
 
 - Authentication واقعی فعال نیست.
 - Student و Master از Demo Role استفاده می‌کنند.

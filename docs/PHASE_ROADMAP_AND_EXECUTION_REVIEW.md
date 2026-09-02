@@ -7,6 +7,19 @@
 
 > این سند افزایشی است و جایگزین `PRODUCT_SPEC.md`، `ARCHITECTURE.md`، `FINAL_AUDIT.md`، `PHASE1_AUDIT.md`، `PHASE1_FULL_AUDIT.md` یا `PHASE2_API_QA.md` نمی‌شود.
 
+> **Current status addendum:** بخش‌های تاریخی این سند وضعیت پیش از اجرای Phase 3 را توصیف می‌کنند. اکنون Phase 3 Authentication/Authorization در Repository پیاده‌سازی و Local تست شده است؛ Operational Verification و Production Release همچنان Blocked هستند. گزارش مرجع: `docs/PHASE3_COMPLETION_AUDIT.md`.
+
+## وضعیت جاری در ۲ سپتامبر ۲۰۲۶
+
+```text
+Phase 0: PASS WITH WARNINGS — historical Discovery
+Phase 1: PASS WITH WARNINGS — historical L1 Architecture
+Phase 2: APPROVED WITH WARNINGS — Local API Integration
+Phase 3: IMPLEMENTED LOCALLY — operational gates NOT VERIFIED
+Phase 4: NOT STARTED — intentionally blocked
+Production: BLOCKED
+```
+
 ---
 
 ## 1. نکته مهم درباره جلسه و نظرات افراد
@@ -20,6 +33,8 @@
 ---
 
 ## 2. پاسخ کوتاه: کجا هستیم؟
+
+> متن این بخش Snapshot تاریخی پیش از اجرای Phase 3 است. وضعیت قابل اتکا برای امروز در «وضعیت جاری» و `docs/PHASE3_COMPLETION_AUDIT.md` آمده است.
 
 ```text
 Phase 0 — Discovery
@@ -50,15 +65,15 @@ Production Release
 | Quiz Submit | متصل و پایدار در Local D1 | جدول `quiz_attempts` در Migration 0002 |
 | Progress | Write/Read متصل | `POST/GET /api/v1/progress` |
 | Glossary/Library | List، Filter و Detail متصل | API و UI Student |
-| Master CRUD | Create، Read، Update، Archive متصل | API + UI با Demo fallback |
-| Phase 2 QA | تأییدشده با Warning | `docs/PHASE2_API_QA.md` |
-| Production Security | شروع نشده | Authentication و Remote D1 هنوز تصمیم‌گیری نشده‌اند |
-| Production Release | مجاز نیست | Demo Auth، Placeholder D1 و نبود E2E کامل |
+| Master CRUD | Create، Read، Update، Archive متصل | API + UI؛ در خطای Backend داده محلی منبع اعتماد نیست |
+| Phase 2 QA | تأییدشده با Warning | `docs/PHASE2_API_QA.md`؛ Snapshot تاریخی |
+| Production Security | Implementation محلی انجام شده | Clerk/Remote D1/CORS/WAF/Browser E2E هنوز NOT VERIFIED |
+| Production Release | مجاز نیست | Environment واقعی، Route Production و E2E کامل نشده است |
 
 ### آخرین وضعیت Git
 
 ```text
-HEAD: 84c5ce1 feat: complete phase two api integration
+HEAD: c1a07d2 feat: implement Clerk authentication and authorization phase 3
 Branch: arena/01a05d5b-darullfonon
 Working tree: clean
 ```
@@ -500,17 +515,18 @@ Go/No-Go: GO
 
 1. Phase 0 و Phase 1 از نظر مستندات و Gate تاریخی پشت سر گذاشته شده‌اند و هر دو با Warning ثبت شده‌اند.
 2. Phase 2 در Local Development اجرا شده و QA آن را `APPROVED WITH WARNINGS` اعلام کرده است.
-3. اتصال واقعی Frontend، Worker و D1 در مسیرهای اصلی وجود دارد؛ Demo fallback نیز صریح و محدود باقی مانده است.
-4. Complexity باید روی `L1 — Simple` باقی بماند.
-5. گام بعدی فنی، Phase 3 یعنی Production Security / Authentication است.
-6. Phase 3 بدون تصمیم مکتوب درباره Authentication، Authorization، Remote D1 و CORS نباید شروع شود.
-7. Production تا بسته‌شدن Warningهای امنیتی و اجرای Phase 4 همچنان Blocked است.
+3. اتصال Frontend، Worker و D1 در Local برای مسیرهای اصلی و مرز Auth وجود دارد؛ داده محلی Master در خطای Backend منبع اعتماد نیست.
+4. Complexity روی `L1 — Simple` باقی مانده است.
+5. Phase 3 در Repository پیاده‌سازی شده، اما Clerk/Remote D1/CORS/WAF و Browser E2E عملیاتی Verify نشده‌اند.
+6. Phase 4 تا بسته‌شدن Gateهای Environment-dependent Phase 3 نباید شروع شود.
+7. Production تا تکمیل این Gateها و اجرای Final Audit همچنان Blocked است.
 
-### تصمیم کاری پیشنهادی برای رأی جلسه
+### تصمیم کاری فعلی
 
 ```text
-Phase 2 Local Gate: قبول
-ورود به Phase 3: مشروط به تصویب Authentication و Remote D1
+Phase 2 Local Gate: قبول با Warning تاریخی
+Phase 3 Repository Gate: قبول برای Local؛ Production NOT VERIFIED
+ورود به Phase 4: Blocked تا بسته‌شدن Gateهای Phase 3
 Production Release: رد تا تکمیل Phase 3 و Phase 4
 ```
 

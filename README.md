@@ -68,8 +68,15 @@ npm run phase3:preflight -- --production
 - `docs/PHASE3_INITIAL_AUTH_AUDIT.md` — ممیزی اولیه Authentication و User Management بر اساس Requirement جدید
 - `docs/PHASE3_AUTH_DECISION_RECORD.md` — انتخاب نهایی Clerk، تصمیم‌ها و Gateهای عملیاتی Authentication
 - `docs/PHASE3_AUTH_IMPLEMENTATION_PLAN.md` — Plan و وضعیت اجرای Phase 3
-- `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` — بررسی قابلیت فعلی PWA و طرح Offline امن بدون دورزدن Auth
+- `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` — Snapshot ممیزی Phase 3.1؛ دامنه آن با Policy رسمی Phase 3.2 جایگزین شده است
+- `docs/DAROLFONUN_OFFLINE_POLICY.md` — Policy رسمی و حاکم Offline Learning & Online Transaction
 - `docs/PHASE3_AUTH_PROVIDER_MATRIX.md` — مقایسه Clerk و Supabase برای OAuth، Worker و PWA
+- `docs/PHASE-3.2-AUDIT-REPORT.md` — ممیزی Production Unlock و Private Pilot Gate
+- `docs/PRODUCTION-EVIDENCE-MATRIX.md` — Matrix شواهد Gateهای Phase 3.2
+- `docs/ENVIRONMENT-INVENTORY.md` — Inventory Environmentها، Resourceها و Ownerهای موردنیاز
+- `docs/AUTHORIZATION-MATRIX.md` — Matrix رسمی Role، Status و Ownership
+- `docs/PRODUCTION-ROLLBACK-RUNBOOK.md` — طرح Rollback، Backup و Recovery
+- `docs/PRIVATE-PILOT-READINESS.md` — تصمیم و شروط آمادگی Private Pilot
 - `docs/PHASE3_CLERK_SETUP.md` — تنظیمات Clerk، Secretها، Bootstrap و Flowهای Phase 3
 - `docs/PHASE3_AUTH_TEST_REPORT.md` — تست‌های واقعی Local، موارد NOT VERIFIED و Release Blockers
 - `docs/PHASE3_COMPLETION_AUDIT.md` — ممیزی زنجیره، انتخاب راهکار، اولویت ریسک‌ها و Gate ورود به Phase 4

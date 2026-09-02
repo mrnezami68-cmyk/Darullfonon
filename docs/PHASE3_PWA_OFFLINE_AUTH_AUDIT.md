@@ -4,7 +4,9 @@
 **وضعیت:** Implementation محلی انجام شده؛ Browser Offline E2E و Production Verification باقی است
 **Complexity Target:** `L1 — Simple`
 
-این سند نتیجه ممیزی فعلی Service Worker، Cache و مرز Auth است. نسخه‌های قبلی این فایل Snapshot پیش از Implementation بودند؛ این نسخه وضعیت جاری Repository را ثبت می‌کند.
+این سند نتیجه ممیزی Phase 3.1 از Service Worker، Cache و مرز Auth است. نسخه‌های قبلی این فایل Snapshot پیش از Implementation بودند؛ این نسخه وضعیت Repository در Phase 3.1 را ثبت می‌کند.
+
+> **اعلام حاکمیتی Phase 3.2:** دامنه Offline این سند با انتشار `docs/DAROLFONUN_OFFLINE_POLICY.md` جایگزین شده است. Policy جدید علاوه بر محتوای Published، Snapshot محدود Profile، Progress و Learning Path و Sync حداقلی پس از Reconnect را تصویب می‌کند. مشاهدات این سند درباره Implementation فعلی تاریخی/مبنایی هستند و به‌تنهایی Acceptance فعلی Phase 3.2 محسوب نمی‌شوند.
 
 ---
 

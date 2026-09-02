@@ -11,6 +11,8 @@
 
 این سند نتیجه ممیزی مجدد پس از Implementation است. هدف، اعلام صادقانه وضعیت هر Gate و تفکیک موارد قابل اصلاح در Repository از مواردی است که بدون دسترسی به Clerk/Cloudflare واقعی قابل انجام نیستند.
 
+> **مرجع Phase 3.2:** رفتار Offline از این پس طبق `docs/DAROLFONUN_OFFLINE_POLICY.md` ارزیابی می‌شود. این Completion Audit، وضعیت Phase 3.1 را ثبت می‌کند؛ Policy جدید دامنه Offline را به Snapshot محدود Profile، Progress و Learning Path و Sync حداقلی پس از Reconnect گسترش داده و شواهد آن در Audit Phase 3.2 ثبت شده است.
+
 ---
 
 ## 1. خلاصه اجرایی

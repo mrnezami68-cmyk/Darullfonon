@@ -210,6 +210,61 @@ Content Typeهای فعلی:
 
 ---
 
+## Student Knowledge and Library
+
+### `GET /api/v1/glossary`
+
+فهرست مدخل‌های دانشنامه منتشرشده. پارامترهای اختیاری `q` برای جست‌وجو در term/full name/definition و `category` برای فیلتر دسته‌بندی هستند.
+
+### `GET /api/v1/glossary/:slug`
+
+جزئیات یک مدخل Published دانشنامه.
+
+**Errors:** `404 GLOSSARY_NOT_FOUND`
+
+### `GET /api/v1/library`
+
+فهرست منابع کتابخانه منتشرشده. پارامترهای اختیاری `category`، `level` و `type` پشتیبانی می‌شوند.
+
+### `GET /api/v1/library/:slug`
+
+جزئیات یک منبع Published کتابخانه.
+
+**Errors:** `404 LIBRARY_NOT_FOUND`
+
+## Student Quiz
+
+### `GET /api/v1/quizzes/:id`
+
+جزئیات آزمون Published به‌همراه سؤال‌های Published و گزینه‌های parse‌شده.
+
+**Errors:** `404 QUIZ_NOT_FOUND`
+
+### `POST /api/v1/quizzes/:id/submit`
+
+محاسبه نمره در Worker و ذخیره Attempt در جدول `quiz_attempts`.
+
+Header اختیاری:
+
+```text
+X-Demo-User: demo-student
+```
+
+**Input:**
+
+```json
+{
+  "answers": {
+    "question-crypto-03-01": 0,
+    "question-crypto-03-02": 0
+  }
+}
+```
+
+**Output:** شامل `score`، `passingScore`، `passed`، `correct` و `total`.
+
+**Errors:** `400 INVALID_ANSWERS`، `404 QUIZ_NOT_FOUND`، `409 QUIZ_EMPTY`، `413 PAYLOAD_TOO_LARGE`
+
 ## API Security Notes
 
 - Demo Role فقط برای Development است.

@@ -21,6 +21,23 @@
 
 - Production Authentication and Authorization
 - Remote D1 database ID
-- Frontend API integration
+- Frontend API integration (implemented in Phase 2 below)
 - Offline content caching
 - Real Certificate PDF generation
+
+## Phase 2 — API Integration — 2026-09-02
+
+### Added
+
+- Central frontend API client with loading, error and retry states.
+- Worker-backed Glossary, Library, Quiz submission and Progress read/write flows.
+- D1 `quiz_attempts` migration and persisted quiz scoring.
+- Student Knowledge and Library UI connected to published D1 content.
+- Master content lists and CRUD/archive controls connected to the development Worker, with explicit local Demo fallback when the API is unavailable.
+- Vite `/api` proxy for local Frontend ↔ Worker integration.
+
+### Verified
+
+- Fresh local D1 application of migrations `0001_initial.sql` and `0002_quiz_attempts.sql`.
+- Build and Worker TypeScript typecheck.
+- API smoke coverage for Health, Courses, Glossary, Library, Quiz, Quiz Submit, Progress and Master role guard/CRUD.

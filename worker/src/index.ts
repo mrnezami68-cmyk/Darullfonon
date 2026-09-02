@@ -42,7 +42,7 @@ function corsHeaders(request: Request, env: Env): HeadersInit {
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'Content-Type, X-Demo-Role, X-Demo-User',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   }
@@ -138,6 +138,113 @@ async function lessonDetail(request: Request, env: Env, slug: string): Promise<R
   ).bind(slug).first()
   if (!lesson) return error(request, env, 'درس موردنظر پیدا نشد.', 404, 'LESSON_NOT_FOUND')
   return json(request, env, { data: lesson })
+}
+
+async function listGlossary(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url)
+  const query = (url.searchParams.get('q') || '').trim()
+  const category = (url.searchParams.get('category') || '').trim()
+  const clauses = ["status = 'Published'"]
+  const bindings: string[] = []
+  if (query) {
+    clauses.push('(term LIKE ? OR full_name LIKE ? OR simple_definition LIKE ?)')
+    const pattern = `%${query}%`
+    bindings.push(pattern, pattern, pattern)
+  }
+  if (category) {
+    clauses.push('category = ?')
+    bindings.push(category)
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT id, slug, term, full_name, simple_definition, expert_definition, category FROM glossary_entries WHERE ${clauses.join(' AND ')} ORDER BY term LIMIT 100`,
+  ).bind(...bindings).all()
+  return json(request, env, { data: results })
+}
+
+async function glossaryDetail(request: Request, env: Env, slug: string): Promise<Response> {
+  const entry = await env.DB.prepare(
+    `SELECT id, slug, term, full_name, simple_definition, expert_definition, category FROM glossary_entries WHERE slug = ? AND status = 'Published' LIMIT 1`,
+  ).bind(slug).first()
+  if (!entry) return error(request, env, 'مدخل دانشنامه پیدا نشد.', 404, 'GLOSSARY_NOT_FOUND')
+  return json(request, env, { data: entry })
+}
+
+async function listLibrary(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url)
+  const category = (url.searchParams.get('category') || '').trim()
+  const level = (url.searchParams.get('level') || '').trim()
+  const type = (url.searchParams.get('type') || '').trim()
+  const clauses = ["status = 'Published'"]
+  const bindings: string[] = []
+  if (category) { clauses.push('category = ?'); bindings.push(category) }
+  if (level) { clauses.push('level = ?'); bindings.push(level) }
+  if (type) { clauses.push('resource_type = ?'); bindings.push(type) }
+  const { results } = await env.DB.prepare(
+    `SELECT id, slug, title, author, summary, category, level, resource_type, access_type FROM library_resources WHERE ${clauses.join(' AND ')} ORDER BY title LIMIT 100`,
+  ).bind(...bindings).all()
+  return json(request, env, { data: results })
+}
+
+async function libraryDetail(request: Request, env: Env, slug: string): Promise<Response> {
+  const resource = await env.DB.prepare(
+    `SELECT id, slug, title, author, summary, category, level, resource_type, access_type FROM library_resources WHERE slug = ? AND status = 'Published' LIMIT 1`,
+  ).bind(slug).first()
+  if (!resource) return error(request, env, 'منبع موردنظر پیدا نشد.', 404, 'LIBRARY_NOT_FOUND')
+  return json(request, env, { data: resource })
+}
+
+async function quizDetail(request: Request, env: Env, id: string): Promise<Response> {
+  const quiz = await env.DB.prepare(
+    `SELECT id, chapter_id, title, passing_score, time_limit_minutes, attempts_allowed FROM quizzes WHERE id = ? AND status = 'Published' LIMIT 1`,
+  ).bind(id).first()
+  if (!quiz) return error(request, env, 'آزمون موردنظر پیدا نشد.', 404, 'QUIZ_NOT_FOUND')
+  const { results } = await env.DB.prepare(
+    `SELECT id, prompt, options_json, explanation, difficulty FROM questions WHERE quiz_id = ? AND status = 'Published' ORDER BY created_at, id`,
+  ).bind(id).all()
+  const questions = results.map((question) => {
+    let options: unknown[] = []
+    try { options = JSON.parse(String(question.options_json || '[]')) } catch { options = [] }
+    return { id: question.id, prompt: question.prompt, options, explanation: question.explanation, difficulty: question.difficulty }
+  })
+  return json(request, env, { data: { ...quiz, questions } })
+}
+
+async function submitQuiz(request: Request, env: Env, id: string): Promise<Response> {
+  const parsed = await parseBody(request, env)
+  if (parsed.response) return parsed.response
+  const body = parsed.body || {}
+  const answers = body.answers
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return error(request, env, 'پاسخ‌های آزمون معتبر نیستند.', 400, 'INVALID_ANSWERS')
+  const quiz = await env.DB.prepare(
+    `SELECT id, passing_score FROM quizzes WHERE id = ? AND status = 'Published' LIMIT 1`,
+  ).bind(id).first<{ id: string; passing_score: number }>()
+  if (!quiz) return error(request, env, 'آزمون موردنظر پیدا نشد.', 404, 'QUIZ_NOT_FOUND')
+  const { results: questions } = await env.DB.prepare(
+    `SELECT id, correct_option FROM questions WHERE quiz_id = ? AND status = 'Published' ORDER BY created_at, id`,
+  ).bind(id).all<{ id: string; correct_option: string }>()
+  if (!questions.length) return error(request, env, 'این آزمون هنوز سؤال منتشرشده ندارد.', 409, 'QUIZ_EMPTY')
+  const answerMap = answers as Record<string, unknown>
+  let correct = 0
+  for (const question of questions) {
+    const submitted = answerMap[question.id]
+    if (String(submitted) === String(question.correct_option)) correct += 1
+  }
+  const score = Math.round((correct / questions.length) * 100)
+  const passed = score >= Number(quiz.passing_score)
+  const userId = request.headers.get('X-Demo-User') || 'demo-student'
+  await env.DB.prepare(
+    `INSERT INTO quiz_attempts (id, user_id, quiz_id, score, passed, answers_json) VALUES (?, ?, ?, ?, ?, ?)`,
+  ).bind(`attempt-${crypto.randomUUID()}`, userId, id, score, passed ? 1 : 0, JSON.stringify(answers)).run()
+  return json(request, env, { data: { quizId: id, score, passingScore: quiz.passing_score, passed, correct, total: questions.length } }, 201)
+}
+
+async function listProgress(request: Request, env: Env): Promise<Response> {
+  const userId = request.headers.get('X-Demo-User') || 'demo-student'
+  const { results } = await env.DB.prepare(
+    `SELECT p.user_id, p.lesson_id, p.status, p.completed_at, p.updated_at, l.slug, l.title, l.chapter_id
+     FROM progress p JOIN lessons l ON l.id = p.lesson_id WHERE p.user_id = ? ORDER BY p.updated_at DESC LIMIT 200`,
+  ).bind(userId).all()
+  return json(request, env, { data: results })
 }
 
 async function updateProgress(request: Request, env: Env): Promise<Response> {
@@ -309,6 +416,17 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   if (chapterMatch && request.method === 'GET') return chapterDetail(request, env, chapterMatch[1])
   const lessonMatch = path.match(/^\/api\/v1\/lessons\/([a-z0-9-]+)$/)
   if (lessonMatch && request.method === 'GET') return lessonDetail(request, env, lessonMatch[1])
+  const glossaryMatch = path.match(/^\/api\/v1\/glossary\/([a-z0-9-]+)$/)
+  if (glossaryMatch && request.method === 'GET') return glossaryDetail(request, env, glossaryMatch[1])
+  if (path === '/api/v1/glossary' && request.method === 'GET') return listGlossary(request, env)
+  const libraryMatch = path.match(/^\/api\/v1\/library\/([a-z0-9-]+)$/)
+  if (libraryMatch && request.method === 'GET') return libraryDetail(request, env, libraryMatch[1])
+  if (path === '/api/v1/library' && request.method === 'GET') return listLibrary(request, env)
+  const quizMatch = path.match(/^\/api\/v1\/quizzes\/([a-zA-Z0-9_-]+)$/)
+  if (quizMatch && request.method === 'GET') return quizDetail(request, env, quizMatch[1])
+  const quizSubmitMatch = path.match(/^\/api\/v1\/quizzes\/([a-zA-Z0-9_-]+)\/submit$/)
+  if (quizSubmitMatch && request.method === 'POST') return submitQuiz(request, env, quizSubmitMatch[1])
+  if (path === '/api/v1/progress' && request.method === 'GET') return listProgress(request, env)
   if (path === '/api/v1/progress' && request.method === 'POST') return updateProgress(request, env)
   const contentMatch = path.match(/^\/api\/v1\/master\/content\/(courses|lessons|questions|glossary|library)$/)
   if (contentMatch && (request.method === 'GET' || request.method === 'POST')) {

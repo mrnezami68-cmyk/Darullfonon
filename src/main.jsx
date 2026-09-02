@@ -205,7 +205,6 @@ function App() {
     if (id !== 'learning') setLearningView('overview')
     setMenuOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
-    if (id !== 'home' && id !== 'learning') setToast(`بخش ${navItems.find((item) => item.id === id)?.label} به‌زودی در دسترس است.`)
   }
 
   function openLearningView(view) {

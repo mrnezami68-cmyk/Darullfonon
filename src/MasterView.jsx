@@ -13,6 +13,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   Library,
+  Layers3,
   Link2,
   Menu,
   Pencil,
@@ -30,9 +31,12 @@ import {
 const masterNav = [
   { id: 'dashboard', label: 'داشبورد', icon: LayoutDashboard },
   { id: 'users', label: 'کاربران', icon: Users },
+  { id: 'faculties', label: 'دانشکده‌ها', icon: Library },
   { id: 'courses', label: 'دوره‌ها', icon: GraduationCap },
+  { id: 'levels', label: 'سطوح و فصل‌ها', icon: Layers3 },
   { id: 'lessons', label: 'درس‌ها', icon: BookOpen },
   { id: 'quizzes', label: 'آزمون‌ها', icon: ClipboardCheck },
+  { id: 'assessments', label: 'Self Assessments', icon: FlaskConical },
   { id: 'questions', label: 'Question Bank', icon: FileQuestion },
   { id: 'glossary', label: 'Glossary', icon: BookMarked },
   { id: 'library', label: 'کتابخانه', icon: Library },
@@ -101,9 +105,14 @@ function SummaryBar({ label, value, width, tone }) { return <div className="summ
 
 function RecordsPage({ section, records, onAdd, onEdit, onArchive }) {
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const meta = sectionMeta[section]
-  const filtered = records.filter((record) => `${record.title} ${record.detail}`.toLowerCase().includes(query.toLowerCase()))
-  return <div className="records-page"><div className="records-heading"><div><span className="master-kicker">مدیریت محتوا</span><h1>{meta.title}</h1><p>{filtered.length} {meta.singular} در این بخش</p></div><button className="master-primary-button" type="button" onClick={onAdd}><Plus size={17} /> {meta.action}</button></div><div className="records-toolbar"><div className="records-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`جست‌وجوی ${meta.singular}...`} aria-label={`جست‌وجوی ${meta.singular}`} /></div><button type="button" className="master-filter-button">همه وضعیت‌ها <ChevronLeft size={14} /></button><span className="records-count">آخرین تغییرات</span></div><div className="records-table"><div className="records-table-head"><span>عنوان</span><span>جزئیات</span><span>وضعیت</span><span>آخرین تغییر</span><span>عملیات</span></div>{filtered.length ? filtered.map((record) => <div className="record-row" key={record.id}><div className="record-title"><span className={`record-symbol record-${statusTone(record.status)}`}>{section === 'questions' ? '?' : section === 'glossary' ? 'Aa' : section === 'library' ? '▤' : '◈'}</span><strong>{record.title}</strong></div><span className="record-detail">{record.detail}</span><StatusTag status={record.status} /><span className="record-updated">{record.updated}</span><div className="record-actions"><button type="button" aria-label={`ویرایش ${record.title}`} onClick={() => onEdit(record)}><Pencil size={14} /></button><button type="button" aria-label={`بایگانی ${record.title}`} onClick={() => onArchive(record.id)}><Archive size={14} /></button></div></div>) : <div className="master-empty"><Search size={23} /><strong>نتیجه‌ای پیدا نشد</strong><span>عبارت دیگری را امتحان کن.</span></div>}</div></div>
+  const filtered = records.filter((record) => {
+    const matchesQuery = `${record.title} ${record.detail}`.toLowerCase().includes(query.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || record.status === statusFilter
+    return matchesQuery && matchesStatus
+  })
+  return <div className="records-page"><div className="records-heading"><div><span className="master-kicker">مدیریت محتوا</span><h1>{meta.title}</h1><p>{filtered.length} {meta.singular} در این بخش</p></div><button className="master-primary-button" type="button" onClick={onAdd}><Plus size={17} /> {meta.action}</button></div><div className="records-toolbar"><div className="records-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`جست‌وجوی ${meta.singular}...`} aria-label={`جست‌وجوی ${meta.singular}`} /></div><select className="master-filter-button" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="فیلتر وضعیت"><option value="all">همه وضعیت‌ها</option><option value="Published">منتشر شده</option><option value="Review">در بررسی</option><option value="Draft">پیش‌نویس</option><option value="Archived">بایگانی شده</option></select><span className="records-count">آخرین تغییرات</span></div><div className="records-table"><div className="records-table-head"><span>عنوان</span><span>جزئیات</span><span>وضعیت</span><span>آخرین تغییر</span><span>عملیات</span></div>{filtered.length ? filtered.map((record) => <div className="record-row" key={record.id}><div className="record-title"><span className={`record-symbol record-${statusTone(record.status)}`}>{section === 'questions' ? '?' : section === 'glossary' ? 'Aa' : section === 'library' ? '▤' : '◈'}</span><strong>{record.title}</strong></div><span className="record-detail">{record.detail}</span><StatusTag status={record.status} /><span className="record-updated">{record.updated}</span><div className="record-actions"><button type="button" aria-label={`ویرایش ${record.title}`} onClick={() => onEdit(record)}><Pencil size={14} /></button><button type="button" aria-label={`بایگانی ${record.title}`} onClick={() => onArchive(record.id)}><Archive size={14} /></button></div></div>) : <div className="master-empty"><Search size={23} /><strong>نتیجه‌ای پیدا نشد</strong><span>عبارت دیگری را امتحان کن.</span></div>}</div></div>
 }
 
 function RecordForm({ section, record, onCancel, onSave }) {
@@ -115,21 +124,38 @@ function RecordForm({ section, record, onCancel, onSave }) {
 }
 
 function RelationsPage() {
-  return <div className="relations-page"><div className="records-heading"><div><span className="master-kicker">Knowledge Graph پایه</span><h1>روابط محتوا</h1><p>محتواها را به هم متصل کن تا کاربر مسیرهای بیشتری برای کشف داشته باشد.</p></div><button className="master-primary-button" type="button"><Plus size={17} /> رابطه جدید</button></div><div className="relation-board"><RelationCard left="Lesson" leftValue="نگهداری امن دارایی" connector="مرتبط با" right="Glossary" rightValue="کیف پول" tone="teal" /><RelationCard left="Lesson" leftValue="چرخه‌های اقتصادی" connector="مطالعه بیشتر" right="Library" rightValue="شناخت چرخه‌های اقتصادی" tone="gold" /><RelationCard left="Course" leftValue="مبانی کریپتو" connector="پیشنهاد بعدی" right="Course" rightValue="مدیریت ریسک" tone="blue" /></div><div className="relation-empty"><Link2 size={22} /><strong>رابطه‌ها به یادگیری عمق می‌دهند.</strong><p>از هر درس، یک مسیر کوتاه به مفهوم‌ها و منابع مرتبط بساز.</p></div></div>
+  const [relations, setRelations] = useState([
+    { id: 'r-1', left: 'Lesson', leftValue: 'نگهداری امن دارایی', connector: 'مرتبط با', right: 'Glossary', rightValue: 'کیف پول', tone: 'teal' },
+    { id: 'r-2', left: 'Lesson', leftValue: 'چرخه‌های اقتصادی', connector: 'مطالعه بیشتر', right: 'Library', rightValue: 'شناخت چرخه‌های اقتصادی', tone: 'gold' },
+    { id: 'r-3', left: 'Course', leftValue: 'مبانی کریپتو', connector: 'پیشنهاد بعدی', right: 'Course', rightValue: 'مدیریت ریسک', tone: 'blue' },
+  ])
+  function addRelation() {
+    setRelations((current) => [...current, { id: `r-${Date.now()}`, left: 'Lesson', leftValue: 'درس جدید', connector: 'مرتبط با', right: 'Glossary', rightValue: 'مفهوم جدید', tone: 'teal' }])
+  }
+  return <div className="relations-page"><div className="records-heading"><div><span className="master-kicker">Knowledge Graph پایه</span><h1>روابط محتوا</h1><p>محتواها را به هم متصل کن تا کاربر مسیرهای بیشتری برای کشف داشته باشد.</p></div><button className="master-primary-button" type="button" onClick={addRelation}><Plus size={17} /> رابطه جدید</button></div><div className="relation-board">{relations.map((relation) => <RelationCard key={relation.id} {...relation} onRemove={() => setRelations((current) => current.filter((item) => item.id !== relation.id))} />)}</div><div className="relation-empty"><Link2 size={22} /><strong>رابطه‌ها به یادگیری عمق می‌دهند.</strong><p>از هر درس، یک مسیر کوتاه به مفهوم‌ها و منابع مرتبط بساز.</p></div></div>
 }
-function RelationCard({ left, leftValue, connector, right, rightValue, tone }) { return <div className="relation-card"><div className={`relation-node node-${tone}`}><span>{left}</span><strong>{leftValue}</strong></div><div className="relation-connector"><span>{connector}</span><i>↔</i></div><div className={`relation-node node-${tone}`}><span>{right}</span><strong>{rightValue}</strong></div><button type="button" aria-label="حذف رابطه"><X size={14} /></button></div> }
+function RelationCard({ left, leftValue, connector, right, rightValue, tone, onRemove }) { return <div className="relation-card"><div className={`relation-node node-${tone}`}><span>{left}</span><strong>{leftValue}</strong></div><div className="relation-connector"><span>{connector}</span><i>↔</i></div><div className={`relation-node node-${tone}`}><span>{right}</span><strong>{rightValue}</strong></div><button type="button" aria-label="حذف رابطه" onClick={onRemove}><X size={14} /></button></div> }
 
 function SimpleMasterPage({ section }) { const item = masterNav.find((entry) => entry.id === section); const Icon = item?.icon || Settings; return <div className="master-simple-page"><span className="master-simple-icon"><Icon size={25} /></span><span className="master-kicker">پنل مدیریت</span><h1>{item?.label || 'بخش'}</h1><p>این بخش در ادامه MVP با همان زبان کاربردی و یکپارچه تکمیل می‌شود.</p></div> }
 
 export default function MasterView({ onExit }) {
   const [section, setSection] = useState('dashboard')
-  const [records, setRecords] = useState(() => { try { return JSON.parse(localStorage.getItem('darullfonon-master-records')) || initialRecords } catch { return initialRecords } })
+  const [records, setRecords] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('darullfonon-master-records'))
+      return Object.fromEntries(Object.keys(initialRecords).map((key) => [key, Array.isArray(stored?.[key]) ? stored[key] : initialRecords[key]]))
+    } catch {
+      return initialRecords
+    }
+  })
   const [form, setForm] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  useEffect(() => { localStorage.setItem('darullfonon-master-records', JSON.stringify(records)) }, [records])
+  useEffect(() => {
+    try { localStorage.setItem('darullfonon-master-records', JSON.stringify(records)) } catch { /* Demo mode can continue without persistence. */ }
+  }, [records])
   const activeLabel = masterNav.find((entry) => entry.id === section)?.label || 'داشبورد'
   function select(next) { setSection(next); setForm(null); setSidebarOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   function saveRecord(record) { setRecords((current) => ({ ...current, [section]: record.id && current[section].some((item) => item.id === record.id) ? current[section].map((item) => item.id === record.id ? record : item) : [record, ...current[section]] })); setForm(null) }
   function archiveRecord(id) { setRecords((current) => ({ ...current, [section]: current[section].map((item) => item.id === id ? { ...item, status: 'Archived', updated: 'همین حالا' } : item) })) }
-  return <div className="master-shell"><aside className={`master-sidebar ${sidebarOpen ? 'open' : ''}`}><div className="master-brand"><span className="master-logo">✦</span><div><strong>دارالفنون</strong><small>پنل مدیریت</small></div><button type="button" className="master-close" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div><div className="master-profile"><span>م</span><div><strong>استاد محتوا</strong><small>دسترسی اصلی</small></div></div><nav className="master-nav">{masterNav.map((item) => { const Icon = item.icon; return <button type="button" className={section === item.id ? 'active' : ''} key={item.id} onClick={() => select(item.id)}><Icon size={17} /><span>{item.label}</span>{section === item.id && <ChevronLeft size={14} />}</button> })}</nav><div className="master-sidebar-bottom"><button type="button" onClick={onExit}><ArrowLeft size={16} /> بازگشت به Student</button><span>دارالفنون · Master 1.0</span></div></aside><div className="master-main"><header className="master-header"><button type="button" className="master-menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div><span className="master-breadcrumb">Master / {activeLabel}</span><h2>{activeLabel}</h2></div><div className="master-header-actions"><button type="button" className="master-header-search"><Search size={17} /><span>جست‌وجوی محتوا</span></button><button type="button" className="master-bell">◌</button><span className="master-header-avatar">م</span></div></header><main className="master-content">{section === 'dashboard' ? <MasterDashboard onSelect={select} /> : section === 'relations' ? <RelationsPage /> : sectionMeta[section] ? <RecordsPage section={section} records={records[section]} onAdd={() => setForm({ section })} onEdit={(record) => setForm({ section, record })} onArchive={archiveRecord} /> : <SimpleMasterPage section={section} />}</main></div>{form && <RecordForm section={form.section} record={form.record} onCancel={() => setForm(null)} onSave={saveRecord} />}</div>
+  return <div className="master-shell"><aside className={`master-sidebar ${sidebarOpen ? 'open' : ''}`}><div className="master-brand"><span className="master-logo">✦</span><div><strong>دارالفنون</strong><small>پنل مدیریت</small></div><button type="button" className="master-close" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div><div className="master-profile"><span>م</span><div><strong>استاد محتوا</strong><small>دسترسی اصلی</small></div></div><nav className="master-nav">{masterNav.map((item) => { const Icon = item.icon; return <button type="button" className={section === item.id ? 'active' : ''} key={item.id} onClick={() => select(item.id)}><Icon size={17} /><span>{item.label}</span>{section === item.id && <ChevronLeft size={14} />}</button> })}</nav><div className="master-sidebar-bottom"><button type="button" onClick={onExit}><ArrowLeft size={16} /> بازگشت به Student</button><span>دارالفنون · Master 1.0</span></div></aside><div className="master-main"><header className="master-header"><button type="button" className="master-menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><div><span className="master-breadcrumb">Master / {activeLabel}</span><h2>{activeLabel}</h2></div><div className="master-header-actions"><div className="master-header-search" role="search" aria-label="جست‌وجوی محتوا"><Search size={17} /><span>جست‌وجوی محتوا</span></div><span className="master-bell" role="img" aria-label="اعلان‌ها">◌</span><span className="master-header-avatar">م</span></div></header><main className="master-content">{section === 'dashboard' ? <MasterDashboard onSelect={select} /> : section === 'relations' ? <RelationsPage /> : sectionMeta[section] ? <RecordsPage section={section} records={records[section]} onAdd={() => setForm({ section })} onEdit={(record) => setForm({ section, record })} onArchive={archiveRecord} /> : <SimpleMasterPage section={section} />}</main></div>{form && <RecordForm section={form.section} record={form.record} onCancel={() => setForm(null)} onSave={saveRecord} />}</div>
 }

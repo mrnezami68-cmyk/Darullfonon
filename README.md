@@ -57,6 +57,7 @@ npm run worker:typecheck
 - `docs/FINAL_AUDIT.md` — صورت‌جلسه ممیزی Vertical Slice
 - `docs/darullfonon-mvp-execution-prompt-v1.0.md` — پرامپت اجرایی MVP
 - `docs/PHASE_ROADMAP_AND_EXECUTION_REVIEW.md` — وضعیت فازها، نقشه راه و چارچوب جلسه تصمیم‌گیری
+- `docs/PHASE3_AUTHENTICATION_CONSULTATION.md` — مشاوره Authentication و طراحی ثبت‌نام پیش از Phase 3
 
 ## هشدار Production
 

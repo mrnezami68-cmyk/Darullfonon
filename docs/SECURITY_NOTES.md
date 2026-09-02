@@ -26,7 +26,7 @@
 - Rate Limit پایه برای Student Onboarding، Teacher Application و Admin Mutation با D1 Bucket فعال است.
 - بدون `ALLOWED_ORIGIN`، CORS به Origin دلخواه Echo نمی‌شود و مقدار `null` برمی‌گرداند.
 - Responseهای Auth/User/Admin/Mutation با `Cache-Control: no-store` ارسال می‌شوند.
-- Service Worker فقط Content عمومی و Published را Cache می‌کند؛ Auth، Progress، Quiz Submit و Staff/Admin Cache نمی‌شوند.
+- Service Worker فقط Content عمومی و Published را Cache می‌کند؛ Auth، Quiz Submit و Staff/Admin Cache نمی‌شوند. طبق Policy رسمی Phase 3.2، Snapshot محدود Profile/Progress/Learning Path فقط به‌صورت Last Known Read-only State و با Cleanup/Authorization Refresh مجاز است؛ Implementation آن هنوز `NOT VERIFIED` است.
 - Body درخواست به 64KB و Token به 16KB محدود شده است.
 - Dynamic Table Name فقط از Allowlist داخلی انتخاب می‌شود.
 

@@ -23,7 +23,7 @@
 | Recovery Policy | upstream IdP مسئول Recovery است | CONFIRMED FOR PLAN |
 | Email Verification Trust Policy | فقط `email_verified` معتبر upstream | CONFIRMED |
 | MFA برای Staff | Invite-only + MFA اجباری | CONFIRMED |
-| PWA Offline Scope | فقط Offline Reading محتوای از قبل دریافت‌شده | CONFIRMED FOR PLAN |
+| PWA Offline Scope | Published Reading + Snapshot محدود Profile/Progress/Learning Path؛ بدون Mutation Queue | CONFIRMED FOR PHASE 3.2 PLAN |
 | `@mt` Scope | Teacher و Master | CONFIRMED FOR PLAN |
 | Migration Approval | صادر نشده | BLOCKED |
 
@@ -150,17 +150,20 @@ Verification ایمیلی داخلی اضافه نمی‌شود.
 
 ### 3.5 PWA Offline Scope
 
-تصمیم ثبت‌شده: فقط Offline Reading محتوای Published از قبل دریافت‌شده. Progress، Quiz و تمام عملیات Staff/Admin Online هستند. این مرز در `public/sw.js` پیاده‌سازی شده و Browser E2E آن هنوز Verify نشده است.
+تصمیم Phase 3.2، ثبت‌شده در `docs/DAROLFONUN_OFFLINE_POLICY.md`، Published Reading و Snapshot محدود Profile، Progress و Learning Path را مجاز می‌داند. این Snapshotها فقط Last Known Read-only State هستند؛ Progress Mutation، Quiz، Auth و تمام عملیات Staff/Admin Online می‌مانند.
+
+Implementation فعلی Service Worker فقط بخشی از این Policy را پوشش می‌دهد و Browser E2E، Snapshot، Sync و Cleanup هنوز Verify نشده‌اند.
 
 ```text
 Offline Reading: yes, limited and read-only
-Offline Progress Queue: no for MVP
+Offline Profile/Progress/Learning Path Snapshot: approved, implementation pending verification
+Offline Transaction Queue: no for MVP
 Offline Quiz: no
 Offline Auth: no
 Offline Staff/Admin: no
 ```
 
-جزئیات Plan در `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` ثبت شده است.
+جزئیات Policy در `docs/DAROLFONUN_OFFLINE_POLICY.md` و Audit Phase 3.2 در `docs/PHASE-3.2-AUDIT-REPORT.md` ثبت شده است.
 
 ### 3.6 Session Strategy
 

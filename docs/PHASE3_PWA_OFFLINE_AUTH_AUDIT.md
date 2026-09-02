@@ -10,7 +10,9 @@
 
 ---
 
-## 1. تصمیم و مرز نهایی
+## 1. مرز تاریخی Implementation در Phase 3.1
+
+این بخش فقط وضعیت Implementation موجود در Phase 3.1 را ثبت می‌کند. Policy حاکم Phase 3.2 در `docs/DAROLFONUN_OFFLINE_POLICY.md` دامنه Read-only Snapshotهای Profile، Progress و Learning Path را نیز تأیید کرده است.
 
 ```text
 Offline Reading: فقط محتوای Published عمومی که قبلاً دریافت شده است

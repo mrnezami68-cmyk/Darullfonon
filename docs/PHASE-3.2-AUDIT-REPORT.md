@@ -1,7 +1,8 @@
-# DAROLFONUN — PHASE 3.2 AUDIT REPORT
+# DAROLFONUN — PHASE 3.2 PRODUCT-FIRST AUDIT REPORT
 
-**Title:** Production Unlock Verification & Private Pilot Gate  
-**Version:** 1.0  
+**Title:** Product-First Production Readiness Audit
+**Version:** 2.0
+**Directive:** Phase 3.2 — Product-First Production Readiness Audit v2.0
 **Policy:** Offline Learning & Online Transaction Policy v1.0 — `APPROVED / GOVERNING POLICY`  
 **Release Baseline:** `3f29338`  
 **Latest Verification Commit:** `cf1cd16`  
@@ -29,8 +30,11 @@
 
 در Repository فعلی، Cache عمومی Published Content وجود دارد، اما Profile/Progress/Learning Path Snapshot، Revision Sync، Cleanup خصوصی و Browser/Mobile E2E هنوز اثبات نشده‌اند. بنابراین Offline Policy تصویب شده است، اما Offline Implementation برای Pilot هنوز `NOT VERIFIED` و بخشی از آن Gap اجرایی است.
 
+ممیزی Source نیز نشان می‌دهد که برخی Stateهای مسیر اصلی Student هنوز ثابت یا Mock هستند: Dashboard، درصدهای Course/Profile، وضعیت Chapterها و Next Step. این موضوع با قانون `Fake Product State = Forbidden` سازگار نیست و یک P0 واقعی در Product Core است؛ پیش از هر Pilot باید برطرف یا از مسیر Pilot حذف شفاف شود.
+
 ```text
 Private Pilot: NO-GO
+Phase 3.2: BLOCKED (with a recorded Product Core FAIL)
 Production Unlock: BLOCKED
 Architecture Change: NOT REQUIRED
 Feature Expansion: FROZEN
@@ -44,10 +48,12 @@ UI/UX Foundation: ALLOWED IN PARALLEL
 | Area | Status | Interpretation |
 |---|---|---|
 | L1 Architecture | `PASS` | React/Vite + Pages + Worker + D1 + Clerk حفظ شده است |
+| Product Core UI/Data Integrity | `FAIL` | Source audit چند State اصلی را ثابت یا Mock نشان می‌دهد |
 | Local Auth Boundary | `PASS` | JWT، Role/Status، Ownership و Revocation محلی بررسی شده‌اند |
 | Local D1 | `PASS` | Migration و Integrity محلی بررسی شده‌اند |
 | Offline Policy | `PASS` | سند رسمی و Governing Policy پذیرفته شده است |
-| Offline Implementation | `NOT VERIFIED` | Implementation فعلی فقط بخشی از دامنه Policy جدید را پوشش می‌دهد |
+| Offline Core Implementation | `NOT VERIFIED` | Published Content Cache وجود دارد؛ Browser E2E اجرا نشده است |
+| Offline Personal Snapshot | `NOT VERIFIED` | Profile/Progress/Learning Path و cleanup اثبات نشده‌اند |
 | Real Clerk | `BLOCKED` | Environment و Test Account واقعی در دسترس نیست |
 | Remote D1 | `BLOCKED` | Cloudflare Access و Database ID واقعی موجود نیست |
 | Production API/CORS | `NOT VERIFIED` | Route و Origin واقعی اثبات نشده‌اند |
@@ -55,6 +61,28 @@ UI/UX Foundation: ALLOWED IN PARALLEL
 | Backup/Recovery | `BLOCKED` | Restore Evidence وجود ندارد |
 | WAF/Monitoring | `BLOCKED` | Configuration واقعی در دسترس نیست |
 | Private Pilot | `NO-GO` | Gateهای حیاتی بسته نشده‌اند |
+
+---
+
+## PRODUCT CORE EVIDENCE
+
+این بخش بر اساس Source Inspection و Evidence محلی موجود ثبت شده است. این بررسی جایگزین Browser/Production Evidence نیست.
+
+| مرحله | Requirement | Test | Expected | Actual / Evidence | Status | Risk |
+|---|---|---|---|---|---|---|
+| Authentication | Student بتواند با Identity معتبر وارد شود | Clerk/Browser E2E | Session واقعی و قابل اتکا | Clerk واقعی در دسترس نیست؛ Local Auth Boundary موفق | `NOT VERIFIED` | عدم امکان ورود واقعی |
+| Student Identity | Identity به User داخلی D1 نگاشت شود | `/auth/me` و Onboarding | User مستقل با Role/Status صحیح | Local JWT، `/auth/me` و Onboarding موفق | `NOT VERIFIED` برای محیط واقعی | Mapping یا Session mismatch |
+| Dashboard | وضعیت فعلی و Next Step واقعی باشد | Source/Browser inspection | بدون Fake Progress/Result/Next Step | `src/main.jsx`: Home شامل Progress ثابت ۴۸٪ و مسیر ثابت است | `FAIL` | کاربر مسیر واقعی خود را نمی‌بیند |
+| Learning Path | مسیر و درصدها از داده معتبر بیاید | Source inspection | State فصل/درس از Progress واقعی | `src/LearningViews.jsx`: Topics و بعضی درصدها ثابت؛ بخشی از API فقط برای Courses/Progress خوانده می‌شود | `FAIL` | نمایش وضعیت نادرست یادگیری |
+| Course | Course و وضعیت فصل‌ها واقعی باشد | API + Source inspection | Chapter status/progress از Server بیاید | `src/LearningViews.jsx`: Course از API خوانده می‌شود، اما progress و `chapterStatus` ثابت است | `FAIL` | Unlock اشتباه یا گمراهی کاربر |
+| Published Lesson | فقط Lesson مجاز و Published باز شود | Local/API/Browser | محتوای معتبر و قابل مطالعه | Boundary محلی موفق؛ مسیر واقعی اثبات نشده | `NOT VERIFIED` | نشت یا شکست مسیر واقعی |
+| Study | مطالعه Lesson بدون Mock State انجام شود | Browser journey | محتوای واقعی و پیام قابل فهم | `src/LearningViews.jsx`: API Lesson وجود دارد، اما fallback و بخش‌هایی از متن ثابت هستند | `NOT VERIFIED` | تفاوت محتوای نمایشی و واقعی |
+| Quiz | آزمون Online اجرا و Submit شود | API/Browser | Result از Server بیاید | `src/api.js` مسیر Submit دارد؛ Local Quiz/Ownership موفق، Browser/Production اثبات نشده | `NOT VERIFIED` | نتیجه یا Submission نامعتبر |
+| Result | Result واقعی نمایش داده شود | Source/Browser inspection | Score/Passed فقط از Response معتبر | `src/LearningViews.jsx`: `QuizResult` برای نبود Result مقدارهای ثابت fallback دارد | `FAIL` | نمایش نتیجه ساختگی |
+| Progress | Save و Display هر دو واقعی باشند | API + Source inspection | Progress از D1 خوانده و نمایش داده شود | `src/api.js`، `src/LearningViews.jsx` و `src/StudentViews.jsx`: API وجود دارد، اما Home/Profile/Course اعداد ثابت دارند | `FAIL` | Progress واقعی کاربر مخفی یا اشتباه می‌شود |
+| Next Step | از Learning Path/Progress محاسبه شود | Source/Browser inspection | قدم بعدی Dynamic باشد | `src/main.jsx` و `src/LearningViews.jsx`: پیشنهاد و Navigation ثابت هستند | `FAIL` | هدف اصلی محصول نقض می‌شود |
+
+**نتیجه Product Core:** Backend مسیر Quiz/Progress را تا حدی آماده کرده، اما UI اصلی هنوز چند وضعیت ثابت دارد. این P0 باید با کمترین تغییر امن برطرف شود؛ اضافه‌کردن Feature جدید یا بازطراحی معماری لازم نیست.
 
 ---
 
@@ -98,8 +126,8 @@ Local Store سبک برای Read-only Snapshotهای Offline، در صورت ن�
 | Student OAuth | Login واقعی و قابل بازیابی | Clerk Instance واقعی موجود نیست | `BLOCKED` |
 | Email Verification | فقط `email_verified=true` معتبر | Local policy/code؛ Provider واقعی نامشخص | `NOT VERIFIED` |
 | JWT Issuance | Claimهای لازم و Lifetime واقعی | Local RSA fixture موفق؛ Clerk واقعی موجود نیست | `BLOCKED` |
-| Staff Invite-only | مسیر عمومی نداشته باشد | Dashboard/Staff Account موجود نیست | `BLOCKED` |
-| Staff MFA | MFA اجباری باشد | Evidence واقعی موجود نیست | `BLOCKED` |
+| Staff Invite-only | در صورت حضور Staff در Pilot، مسیر عمومی نداشته باشد | Dashboard/Staff Account موجود نیست | `NOT VERIFIED` |
+| Staff MFA | در صورت حضور Staff در Pilot، MFA اجباری باشد | Evidence واقعی موجود نیست | `NOT VERIFIED` |
 | Logout/Expiry/Revocation | Session و JTI بعد از Logout رد شوند | Local fixture موفق؛ Browser/Clerk واقعی نیست | `NOT VERIFIED` |
 | Key/Template lifecycle | Rotation و Lifetime قابل مدیریت باشد | Configuration واقعی Provider موجود نیست | `NOT VERIFIED` |
 
@@ -445,22 +473,26 @@ AI Governance: PASS at audit-process level
 
 ### P0
 
-1. نبود Clerk/Cloudflare واقعی و Ownerهای Environment.
-2. Remote D1 و Backup/Restore اثبات‌نشده.
-3. مسیر واقعی Production `/api/*` و CORS اثبات‌نشده.
-4. Browser OAuth، Authorization و Student Journey اثبات‌نشده.
-5. Staff Invite/MFA و Suspend/Revoke اثبات‌نشده.
-6. WAF، Monitoring و Recovery عملیاتی اثبات‌نشده.
+1. Product Core UI چند State ثابت یا Mock دارد: Dashboard، Learning Path، Course/Chapter، Result، Progress و Next Step.
+2. نبود Clerk/Cloudflare واقعی و Ownerهای Environment.
+3. Remote D1 و Backup/Restore اثبات‌نشده.
+4. مسیر واقعی Production `/api/*` و CORS اثبات‌نشده.
+5. Browser OAuth، Authorization و Student Journey اثبات‌نشده.
+6. Session Security، Quiz/Result/Progress واقعی در مسیر Production اثبات‌نشده.
+7. Staff Invite/MFA و Suspend/Revoke فقط در صورتی P0 هستند که Staff در Pilot اولیه حضور داشته باشد.
 
 ### P1
 
-1. Offline Profile/Progress/Learning Path Snapshot.
-2. Revision-based Content Sync و Last Sync UX.
-3. Logout/Account Switch/Revocation cleanup.
-4. Mobile/PWA Offline E2E.
-5. Concurrency Evidence.
-6. Product Integrity برای Progress و Next Step.
-7. Provider Key/Template lifecycle و CSP، در صورت نیاز واقعی Staging.
+1. Offline Core Browser E2E برای Published Learning Content.
+2. Offline Profile/Progress/Learning Path Snapshot.
+3. Revision-based Content Sync و Last Sync UX.
+4. Logout/Account Switch/Revocation cleanup.
+5. Mobile/PWA Responsive و Offline E2E.
+6. Concurrency Evidence برای داده‌های حیاتی.
+7. WAF پایه، Monitoring حداقلی و Recovery عملیاتی پس از فراهم‌شدن Environment.
+8. Provider Key/Template lifecycle و CSP، در صورت نیاز واقعی Staging.
+
+Staff-specific requirements تا زمان تصمیم رسمی درباره حضور Staff در Pilot، `CONDITIONAL` هستند و نباید خودکار به P0 تبدیل شوند.
 
 ### P2
 
@@ -477,6 +509,36 @@ AI Governance: PASS at audit-process level
 - AI Feature جدید
 
 ---
+
+## COMPLEXITY / REMOVAL ANALYSIS
+
+قاعده این Phase این است که هر تغییر با ارزش آموزشی، پیچیدگی، ریسک و اثر تحویل سنجیده شود. تحلیل اولیه:
+
+| Feature / Option | Educational Value | Complexity | Security Risk | Delivery Impact | Decision | Impact of Removal |
+|---|---|---|---|---|---|---|
+| Dynamic Product Core State | High | Medium | Medium | Medium | `KEEP` | حذف آن Product Core را غیرقابل اعتماد می‌کند |
+| Offline Published Content | High | Low/Medium | Medium | Medium | `KEEP` | تجربه مطالعه Offline از بین می‌رود |
+| Offline Profile/Progress Snapshot | Medium/High | Medium | Medium | Medium | `SIMPLIFY` | برای Pilot فقط Snapshot محدود و Read-only کافی است |
+| Revision-based Sync Engine کامل | Medium | High | Medium | High | `SIMPLIFY` | Sync حداقلی و Revision کافی؛ موتور پیچیده لازم نیست |
+| Offline Transaction Queue | Low | High | High | High | `REMOVE` | کاهش Conflict، Duplicate و ریسک تقلب |
+| Self-assessment Lab در Pilot | Medium | Medium | Medium | Medium | `DEFER` | مسیر اصلی Learning بدون آن کامل می‌ماند |
+| Certificate Generation | Low/Medium | High | Medium | High | `DEFER` | از نمایش نتیجه یا سند ساختگی جلوگیری می‌شود |
+| Global Search کامل | Low for Pilot | Medium/High | Low | Medium | `DEFER` | مسیر اصلی Learning آسیب نمی‌بیند |
+| Enterprise DR، Replication و Multi-region | Low for Pilot | High | Medium | High | `REMOVE` | Backup/Restore ساده هدف Pilot را پوشش می‌دهد |
+| Redis، Queue، Microservice و Sync Service | Low | High | High | High | `REMOVE` | معماری L1 و سرعت تحویل حفظ می‌شود |
+
+## WHAT WE SHOULD NOT BUILD NOW
+
+1. Offline Exam یا Quiz Submission — تراکنش رسمی و Server-authoritative است.
+2. Offline Progress Mutation یا Transaction Queue — ریسک Duplicate و Conflict ایجاد می‌کند.
+3. Redis، Queue، Microservice یا Sync Service — ارزش آموزشی مستقیم ندارد و معماری را بزرگ می‌کند.
+4. CRDT، Event Sourcing و WebSocket — برای نیاز فعلی Pilot ضروری نیست.
+5. Authentication داخلی یا Provider دوم — با Clerk و معماری موجود توجیه ندارد.
+6. Certificate واقعی — برای Minimum Viable Learning Product ضروری نیست.
+7. Self-assessment و Analytics گسترده — خارج از Product Core فعلی است.
+8. Global Search کامل — برای مسیر اصلی Pilot ضروری نیست.
+9. Enterprise Disaster Recovery، Replication و Multi-region — Backup و Restore کنترل‌شده کافی است.
+10. بازنویسی Framework، Frontend یا Data Model — P0 اثبات‌شده‌ای برای آن وجود ندارد.
 
 ## EVIDENCE MATRIX
 
@@ -527,7 +589,7 @@ NO-GO: APPROVED
 
 ### دلیل
 
-چند Gate حیاتی هنوز `BLOCKED` یا `NOT VERIFIED` هستند و طبق سند اجرایی، نبود Evidence واقعی برای Authentication، Authorization، Remote D1، Routing، Staff Security، Backup/Recovery، PWA و Product Integrity برای Private Pilot قابل قبول نیست.
+چند Gate حیاتی هنوز `BLOCKED` یا `NOT VERIFIED` هستند و یک P0 واقعی در Product Core با `FAIL` ثبت شده است. طبق سند اجرایی، نبود Evidence واقعی برای Authentication، Authorization، Remote D1، Routing، Backup/Recovery، PWA و Product Integrity برای Private Pilot قابل قبول نیست. Staff Security فقط در صورت حضور Staff در Pilot به همین Gate اضافه می‌شود.
 
 ---
 

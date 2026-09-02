@@ -20,7 +20,7 @@
 - Approve/Reject/Suspend فقط سمت Backend.
 - `@sd` و `@mt` به‌عنوان Identifier مستقل از Authorization.
 - Session امن و Logout معتبر.
-- Offline Reading محدود برای محتوای Published از قبل دریافت‌شده؛ بدون Offline Authorization.
+- Offline Reading برای محتوای Published و Snapshot محدود Profile/Progress/Learning Path؛ بدون Offline Authorization یا Mutation Queue.
 - Origin، Redirect URI، JWT/JWKS، Rate Limit و Input Validation.
 - تست Functional، Security، Regression و Data Integrity.
 
@@ -343,17 +343,19 @@ Rate-limit verification
 
 ## 9. Offline Plan Boundary
 
-بررسی PWA در `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` ثبت شده است. تصمیم فعلی فقط Offline Reading محدود و read-only برای محتوای Published از قبل دریافت‌شده است:
+مرجع حاکم این بخش `docs/DAROLFONUN_OFFLINE_POLICY.md` است. Offline Reading برای محتوای Published و Snapshot محدود Profile/Progress/Learning Path مجاز است؛ این Snapshotها فقط Last Known Read-only State هستند.
 
 ```text
-Offline Reading: CONFIRMED FOR PLAN
-Offline Progress Queue: NO FOR MVP
+Offline Published Reading: CONFIRMED
+Offline Profile/Progress/Learning Path Snapshot: APPROVED; implementation verification pending
+Offline Transaction Queue: NO FOR MVP
+Offline Progress Mutation: NO
 Offline Quiz: NO
 Offline Auth: NO
 Offline Staff/Admin: NO
 ```
 
-Service Worker اکنون فقط allow-list محتوای عمومی را Cache می‌کند. هیچ Token، `/auth/me`، Progress، Teacher Application، Master یا Admin Response در Cache قرار نمی‌گیرد. Offline mode نباید Identity System دوم بسازد.
+Service Worker فعلاً فقط allow-list محتوای عمومی را Cache می‌کند و هیچ Token، `/auth/me`، Progress Mutation، Teacher Application، Master یا Admin Response را Cache نمی‌کند. Snapshot خصوصی در صورت اجرای حداقلی باید به User صحیح محدود، در Logout/Account Switch پاک یا غیرقابل استفاده و در Reconnect با Server هماهنگ شود.
 
 ---
 

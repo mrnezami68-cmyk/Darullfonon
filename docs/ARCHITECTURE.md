@@ -22,7 +22,7 @@ Cloudflare D1
 - Clerk تنها Identity Provider است؛ Password، Recovery داخلی و Identity System دوم اضافه نشده است.
 - Role و Status فقط از D1 و Policy سمت Worker تعیین می‌شوند.
 - Frontend Token را در `localStorage` یا `sessionStorage` ذخیره نمی‌کند.
-- Service Worker فقط Shell و Public Published Content را Cache می‌کند؛ Auth، Profile، Progress، Quiz Submit و Staff/Admin در Cache نیستند.
+- Service Worker فعلاً Shell و Public Published Content را Cache می‌کند؛ Auth، Quiz Submit و Staff/Admin در Cache نیستند. طبق Policy رسمی Phase 3.2، Snapshot محدود Profile/Progress/Learning Path نیز مجاز است، اما Implementation و Cleanup آن هنوز `NOT VERIFIED` است.
 - Migrationهای `0003_authentication.sql` و `0004_rate_limits.sql` Local اعمال شده‌اند؛ Remote به دلیل نبود Database ID و Cloudflare Access هنوز Blocked است.
 - Production هنوز مجاز نیست؛ جزئیات در `docs/PHASE3_COMPLETION_AUDIT.md` ثبت شده است.
 

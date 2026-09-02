@@ -12,8 +12,8 @@
 | Read Published Lesson | YES | YES | YES | YES |
 | Read Published Article/Library | YES | YES | YES | YES |
 | Read Own Profile Snapshot | YES | YES | YES | YES |
-| Read Own Progress | YES | YES* | YES* | YES* |
-| Submit Own Quiz Online | YES | YES* | YES* | YES* |
+| Read Own Progress | YES | YES | NO | NO |
+| Submit Own Quiz Online | YES | YES | NO | NO |
 | Request Teacher Role | YES | NO | NO | NO |
 | Approve Teacher | NO | NO | NO | YES |
 | Reject Teacher | NO | NO | NO | YES |
@@ -25,7 +25,7 @@
 | Exam/Quiz Submission Offline | NO | NO | NO | NO |
 | Progress Mutation Offline | NO | NO | NO | NO |
 
-`*` دسترسی فقط به داده متعلق به همان User و مطابق Policy نهایی Endpoint است؛ Role به‌تنهایی مالکیت ایجاد نمی‌کند.
+در API فعلی، Progress و Quiz Submit فقط برای Student و Teacher فعالِ احراز‌شده تعریف شده‌اند؛ Master و Admin در این دو عملیات مجوز ندارند. در هر حال Role به‌تنهایی مالکیت ایجاد نمی‌کند و User فقط به داده خودش دسترسی دارد.
 
 ## Authorization Rules
 

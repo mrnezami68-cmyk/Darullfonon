@@ -131,7 +131,7 @@ Online + valid session → Worker re-authorizes → sync
 - بعد از یک Login آنلاین، Offline Reading محدود تست شود.
 - Offline Auth جدید ادعا نشود.
 - Protected Response در Cache ذخیره نشود.
-- Progress Queue اختیاری فقط با اتصال مجدد و Session معتبر Sync شود.
+- فقط Snapshotهای Read-only پس از اتصال مجدد و Session معتبر Sync شوند؛ Progress Mutation و Transaction Queue مجاز نیست.
 
 ---
 

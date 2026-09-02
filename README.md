@@ -71,7 +71,7 @@ npm run phase3:preflight -- --production
 - `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` — Snapshot ممیزی Phase 3.1؛ دامنه آن با Policy رسمی Phase 3.2 جایگزین شده است
 - `docs/DAROLFONUN_OFFLINE_POLICY.md` — Policy رسمی و حاکم Offline Learning & Online Transaction
 - `docs/PHASE3_AUTH_PROVIDER_MATRIX.md` — مقایسه Clerk و Supabase برای OAuth، Worker و PWA
-- `docs/PHASE-3.2-AUDIT-REPORT.md` — ممیزی Production Unlock و Private Pilot Gate
+- `docs/PHASE-3.2-AUDIT-REPORT.md` — ممیزی Product-First Production Readiness و Private Pilot Gate v2.0
 - `docs/PRODUCTION-EVIDENCE-MATRIX.md` — Matrix شواهد Gateهای Phase 3.2
 - `docs/ENVIRONMENT-INVENTORY.md` — Inventory Environmentها، Resourceها و Ownerهای موردنیاز
 - `docs/AUTHORIZATION-MATRIX.md` — Matrix رسمی Role، Status و Ownership

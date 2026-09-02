@@ -12,6 +12,7 @@
 - Added a secret-safe `phase3:preflight -- --production` release-gate command.
 - Required a bounded `iat` claim in Worker JWT validation and recorded valid, future-iat, forged-signature, onboarding and revocation fixture results.
 - Hardened production preflight URL, public-key and bootstrap-subject shape checks without printing values.
+- Established the Phase 3.2 product-first audit artifacts and the approved Offline Learning & Online Transaction Policy; no application code or architecture was changed.
 
 ## Unreleased — 2026-09-02
 

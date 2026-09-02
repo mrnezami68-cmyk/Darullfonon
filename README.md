@@ -58,6 +58,11 @@ npm run worker:typecheck
 - `docs/darullfonon-mvp-execution-prompt-v1.0.md` — پرامپت اجرایی MVP
 - `docs/PHASE_ROADMAP_AND_EXECUTION_REVIEW.md` — وضعیت فازها، نقشه راه و چارچوب جلسه تصمیم‌گیری
 - `docs/PHASE3_AUTHENTICATION_CONSULTATION.md` — مشاوره Authentication و طراحی ثبت‌نام پیش از Phase 3
+- `docs/PHASE3_INITIAL_AUTH_AUDIT.md` — ممیزی اولیه Authentication و User Management بر اساس Requirement جدید
+- `docs/PHASE3_AUTH_DECISION_RECORD.md` — تصمیم‌های ثبت‌شده و Gateهای باز Authentication
+- `docs/PHASE3_AUTH_IMPLEMENTATION_PLAN.md` — Plan حداقلی و غیر اجرایی Phase 3
+- `docs/PHASE3_PWA_OFFLINE_AUTH_AUDIT.md` — بررسی قابلیت فعلی PWA و طرح Offline امن بدون دورزدن Auth
+- `docs/PHASE3_AUTH_PROVIDER_MATRIX.md` — مقایسه اولیه Clerk و Supabase برای OAuth، Worker و PWA
 
 ## هشدار Production
 
